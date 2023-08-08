@@ -4,4 +4,4 @@ out = "out"
 libs = ["lib"]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
-#remappings = ["@opensezppling/=lib/openzeppelin-contracts/"]
+remappings = ["@opensezppling/=lib/openzeppelin-contracts/contracts/","@eas/=lib/eas-contracts/contracts/"]
