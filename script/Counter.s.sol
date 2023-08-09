@@ -2,7 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
-import "@opensezppling/utils/Counters.sol";
+
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@eas/contracts/resolver/SchemaResolver.sol";
 
 contract CounterScript is Script {
     function setUp() public {}
