@@ -1,4 +1,19 @@
-out/
-.idea/
+node_modules
+.env
+
+#foundry test compilation files
 cache
-node_modules/
+out
+reference-out
+optimized-out
+reference-working
+offerers-out
+
+#foundry script run output files
+broadcast/
+
+.DS_Store
+
+.gas_reports/*.md
+
+.idea
