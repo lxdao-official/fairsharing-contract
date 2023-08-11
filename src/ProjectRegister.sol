@@ -1,16 +1,24 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IProjectRegister.sol";
 import "./IProject.sol";
 
-contract ProjectRegistry is IProjectRegister, Ownable {
+contract ProjectRegistry is Ownable, IProjectRegister {
     mapping(uint256 => address) public projects;
     mapping(uint256 => bytes32) public voteVerifiers;
 
-    constructor() {}
+    address public signer;
+
+    constructor(address _signer) Ownable(_msgSender()) {
+        signer = _signer;
+    }
+
+    function updateSigner(address _signer) external onlyOwner {
+        signer = _signer;
+    }
 
     function updateVoteVerifiers(uint256 pid, bytes32 verifier) external {
         voteVerifiers[pid] = verifier;

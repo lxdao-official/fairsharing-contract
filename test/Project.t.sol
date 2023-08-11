@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
@@ -10,13 +10,11 @@ contract CounterTest is Test {
     function setUp() public {
         (address addr, ) = makeAddrAndKey("1337");
         registry = new ProjectRegistry(addr);
-        console.logString("signer");
-        console2.logString("signer");
     }
 
-    function testUpdateSigner(address _signer) public {
-        console2.logString("signer:%@", _signer);
-        registry.updateSigner(_signer);
-        assertEq(registry.signer(), _signer);
+    function testUpdateSigner() public {
+        (address addr, ) = makeAddrAndKey("1338");
+        registry.updateSigner(addr);
+        assertEq(registry.signer(), addr);
     }
 }
