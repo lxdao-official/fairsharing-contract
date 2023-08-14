@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -12,7 +12,7 @@ contract ProjectRegistry is Ownable, IProjectRegister {
 
     address public signer;
 
-    constructor(address _signer) Ownable(_msgSender()) {
+    constructor(address _signer) {
         signer = _signer;
     }
 
@@ -47,7 +47,7 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         projects[pid] = projectAddress;
     }
 
-    function getProject(uint256 pid) external returns (address) {
+    function getProject(uint256 pid) external view returns (address) {
         return projects[pid];
     }
 }
@@ -62,19 +62,19 @@ contract Project is AccessControl, IProject {
 
     function initialize() public {}
 
-    function onPassMakeContribution() external returns (bool) {
+    function onPassMakeContribution() external pure returns (bool) {
         return true;
     }
 
-    function onPassRevokeContribution() external returns (bool) {
+    function onPassRevokeContribution() external pure returns (bool) {
         return true;
     }
 
-    function onPassVerifyContribution() external returns (bool) {
+    function onPassVerifyContribution() external pure returns (bool) {
         return true;
     }
 
-    function onPassClaimContribution() external returns (bool) {
+    function onPassClaimContribution() external pure returns (bool) {
         return true;
     }
 }

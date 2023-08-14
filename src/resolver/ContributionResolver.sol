@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 import "@eas/contracts/resolver/SchemaResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -12,7 +12,7 @@ contract ContributionResolver is Ownable, SchemaResolver {
 
     error InvalidCaller();
 
-    constructor(IEAS eas, address projectRegister) SchemaResolver(eas) Ownable(_msgSender()) {
+    constructor(IEAS eas, address projectRegister) SchemaResolver(eas) {
         attester = msg.sender;
         _projectRegister = projectRegister;
     }
