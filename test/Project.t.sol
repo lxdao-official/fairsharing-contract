@@ -9,11 +9,14 @@ import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "murky/Merkle.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
+    Merkle private _merkleTree;
+    bytes32[] private _proofData;
 
     ISchemaRegistry private _schemaRegistry;
     IEAS private _eas;
@@ -41,16 +44,40 @@ contract ProjectTest is Test {
 
         _registry = new ProjectRegistry(makeAddr("registry"));
 
-        //        bytes32 root = MerkleProof.processProof();
-
         registerProject();
         registerSchemas();
     }
 
+    //    function makeVoteMerkleTree() public {
+    //        // Initialize
+    //        Merkle m = new Merkle();
+    //        // Toy Data
+    //        bytes32[] memory data = new bytes32[](_attesters.length);
+    //        for (uint256 i = 0; i < _attesters.length; i++) {
+    //            data[i] = abi.encodePacked(_attesters[i]);
+    //        }
+    //        // Get Root, Proof, and Verify
+    //        bytes32 root = m.getRoot(data);
+    //
+    //        bytes32[] memory proof = m.getProof(data, 2); // will get proof for 0x2 value
+    //        bool verified = m.verifyProof(root, proof, data[2]); // true!
+    //        assertTrue(verified);
+    //    }
+
     function registerProject() public {
+        // Initialize
+        _merkleTree = new Merkle();
+        // Toy Data
+        _proofData = new bytes32[](_attesters.length);
+        for (uint256 i = 0; i < _attesters.length; i++) {
+            _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
+        }
+        // Get Root
+        bytes32 root = _merkleTree.getRoot(_proofData);
+
         for (uint256 pid = 100; pid < 110; pid++) {
             address addr = makeAddr(Strings.toString(pid));
-            _registry.register(pid, addr);
+            _registry.register(pid, addr, root);
             projectIds.push(pid);
         }
     }
@@ -60,7 +87,7 @@ contract ProjectTest is Test {
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
 
-        _contributionSchemaTemplate = "uint256 pid, uint64 cid, string title, string detail, string poc, uint64 token";
+        _contributionSchemaTemplate = "uint256 pid, uint64 cid, string title, string detail, string poc, uint64 token, bytes32[] proof";
 
         //        console2.logBytes32(contributionSchemaId);
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
@@ -82,13 +109,18 @@ contract ProjectTest is Test {
     }
 
     function testPrepareToVote() public {
+        uint256 attesterIndex = 0;
+
+        bytes32[] memory proof = _merkleTree.getProof(_proofData, attesterIndex); // will get proof for 0x2 value
+
         bytes memory customData = abi.encode(
             projectIds[0],
             uint64(1),
             "first contribution title",
             "first contribution detail",
             "the poc",
-            uint64(2000)
+            uint64(2000),
+            proof
         );
 
         AttestationRequestData memory data = AttestationRequestData({
@@ -107,7 +139,9 @@ contract ProjectTest is Test {
             data: data
         });
 
-        vm.prank(_attesters[0]);
+        console2.log("---------------------- make attest ----------------------");
+        console2.log(_attesters[attesterIndex]);
+        vm.prank(_attesters[attesterIndex]);
         bytes32 contributionAttestationUid = _eas.attest(request);
 
         Attestation memory contributionAttestation = _eas.getAttestation(

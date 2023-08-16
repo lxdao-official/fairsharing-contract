@@ -8,21 +8,13 @@ import "../IProjectRegister.sol";
 import "../IProject.sol";
 
 contract ContributionResolver is Ownable, SchemaResolver {
-    //    address public attester;
     IProjectRegister private _projectRegister;
 
     error InvalidCaller();
 
     constructor(IEAS eas, IProjectRegister projectRegister) SchemaResolver(eas) {
-        //        attester = msg.sender;
         _projectRegister = projectRegister;
     }
-
-    //    /// @notice Updates the attester for future
-    //    /// @param _attester The new attester address to be set in the contract state.
-    //    function updateAttester(address _attester) external onlyOwner {
-    //        attester = _attester;
-    //    }
 
     function isPayable() public pure override returns (bool) {
         return true;
@@ -34,14 +26,14 @@ contract ContributionResolver is Ownable, SchemaResolver {
     ) internal override returns (bool) {
         console2.log("ContributionResolver onAttest:");
         console2.logBytes32(attestation.uid);
-        //        if (attestation.attester != attester) revert InvalidCaller();
-        (uint256 projectId, , , , , ) = abi.decode(
+
+        (uint256 pid, , , , , , ) = abi.decode(
             attestation.data,
-            (uint256, uint64, string, string, string, uint64)
+            (uint256, uint64, string, string, string, uint64, bytes32[])
         );
 
-        address project = IProjectRegister(_projectRegister).getProject(projectId);
-        return IProject(project).onPassMakeContribution(_msgSender(), attestation.data);
+        address project = IProjectRegister(_projectRegister).getProject(pid);
+        return IProject(project).onPassMakeContribution(attestation.attester, attestation.data);
     }
 
     function onRevoke(
