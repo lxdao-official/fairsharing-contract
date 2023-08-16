@@ -5,10 +5,8 @@ out = "out"
 libs = ["lib"]
 
 remappings = [
-    "@eas/contracts/=node_modules/@ethereum-attestation-service/eas-contracts/contracts/",
-    "eas-contracts/=node_modules/@ethereum-attestation-service/eas-contracts/contracts/",
+    "@ethereum-attestation-service/eas-contracts/contracts/=node_modules/@ethereum-attestation-service/eas-contracts/contracts/",
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
-    "openzeppelin-contracts/=node_modules/@openzeppelin/contracts/",
     "forge-std/=lib/forge-std/src/"
 ]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

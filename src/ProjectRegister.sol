@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "forge-std/console2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IProjectRegister.sol";
@@ -56,25 +57,39 @@ contract Project is AccessControl, IProject {
     uint256 private pid;
 
     constructor(uint256 _pid, address manager) {
-        grantRole(DEFAULT_ADMIN_ROLE, manager);
         pid = _pid;
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, manager);
     }
 
     function initialize() public {}
 
-    function onPassMakeContribution() external pure returns (bool) {
+    function onPassMakeContribution(
+        address attester,
+        bytes calldata data
+    ) external pure returns (bool) {
+        console2.log("Project onPassMakeContribution:");
+        (
+            uint256 projectId,
+            uint64 cid,
+            string memory title,
+            string memory detail,
+            string memory poc,
+            uint64 token
+        ) = abi.decode(data, (uint256, uint64, string, string, string, uint64));
+
         return true;
     }
 
-    function onPassRevokeContribution() external pure returns (bool) {
+    function onPassRevokeContribution(address, bytes calldata) external pure returns (bool) {
         return true;
     }
 
-    function onPassVerifyContribution() external pure returns (bool) {
+    function onPassVerifyContribution(address, bytes calldata) external pure returns (bool) {
         return true;
     }
 
-    function onPassClaimContribution() external pure returns (bool) {
+    function onPassClaimContribution(address, bytes calldata) external pure returns (bool) {
         return true;
     }
 }

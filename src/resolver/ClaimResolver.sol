@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@eas/contracts/resolver/SchemaResolver.sol";
+import "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 
 contract ClaimResolver is SchemaResolver {
     constructor(IEAS eas) SchemaResolver(eas) {}
