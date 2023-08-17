@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/console2.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../IProjectRegister.sol";
@@ -24,22 +23,20 @@ contract ContributionResolver is Ownable, SchemaResolver {
         Attestation calldata attestation,
         uint256 /*value*/
     ) internal override returns (bool) {
-        console2.log("ContributionResolver onAttest:");
-        console2.logBytes32(attestation.uid);
-
         (uint256 pid, , , , , , ) = abi.decode(
             attestation.data,
             (uint256, uint64, string, string, string, uint64, bytes32[])
         );
 
         address project = IProjectRegister(_projectRegister).getProject(pid);
+        require(project != address(0), "Contribution project not found.");
         return IProject(project).onPassMakeContribution(attestation.attester, attestation.data);
     }
 
     function onRevoke(
         Attestation calldata /*attestation*/,
         uint256 /*value*/
-    ) internal override returns (bool) {
+    ) internal pure override returns (bool) {
         return true;
     }
 }

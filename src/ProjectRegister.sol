@@ -24,7 +24,7 @@ contract ProjectRegistry is Ownable, IProjectRegister {
     }
 
     function updateVoteVerifiers(uint256 pid, bytes32 verifier) external {
-        voteVerifiers[pid] = verifier;
+        IProject(projects[pid]).updateMerkleRoot(verifier);
     }
 
     function register(
@@ -72,39 +72,66 @@ contract Project is AccessControl, IProject {
 
     function initialize() public {}
 
-    function onPassMakeContribution(address attester, bytes calldata data) external returns (bool) {
+    function updateMerkleRoot(bytes32 _merkleRoot) public {
+        merkleRoot = _merkleRoot;
+    }
+
+    function onPassMakeContribution(
+        address attester,
+        bytes calldata data
+    ) external view returns (bool) {
         console2.log("Project onPassMakeContribution:");
 
-        (
-            uint256 _pid,
-            uint64 cid,
-            string memory title,
-            string memory detail,
-            string memory poc,
-            uint64 token,
-            bytes32[] memory proof
-        ) = abi.decode(data, (uint256, uint64, string, string, string, uint64, bytes32[]));
-
-        console2.logBytes32(merkleRoot);
-        console2.log(attester);
+        (, , , , , , bytes32[] memory proof) = abi.decode(
+            data,
+            (uint256, uint64, string, string, string, uint64, bytes32[])
+        );
 
         require(
             MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Project verify failed."
+            "Make contribution proof verify failed."
         );
 
         return true;
     }
 
     function onPassRevokeContribution(address, bytes calldata) external pure returns (bool) {
+        console2.log("Project onPassRevokeContribution:");
+
         return true;
     }
 
-    function onPassVerifyContribution(address, bytes calldata) external pure returns (bool) {
+    function onPassVerifyContribution(
+        address attester,
+        bytes calldata data
+    ) external view returns (bool) {
+        (, , , , bytes32[] memory proof) = abi.decode(
+            data,
+            (uint256, uint64, bool, string, bytes32[])
+        );
+
+        require(
+            MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
+            "Make vote proof verify failed."
+        );
+
         return true;
     }
 
-    function onPassClaimContribution(address, bytes calldata) external pure returns (bool) {
+    function onPassClaimContribution(
+        address attester,
+        bytes calldata data
+    ) external view returns (bool) {
+        (, , , , bytes32[] memory proof) = abi.decode(
+            data,
+            (uint256, uint64, bool, string, bytes32[])
+        );
+
+        require(
+            MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
+            "Make vote proof verify failed."
+        );
+
         return true;
     }
 }

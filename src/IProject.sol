@@ -2,6 +2,8 @@
 pragma solidity ^0.8.19;
 
 interface IProject {
+    function updateMerkleRoot(bytes32 _merkleRoot) external;
+
     function onPassMakeContribution(address attester, bytes calldata data) external returns (bool);
 
     function onPassRevokeContribution(
