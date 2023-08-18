@@ -67,7 +67,7 @@ contract ProjectTest is Test {
 
         for (uint256 pid = 100; pid < 110; pid++) {
             address addr = makeAddr(Strings.toString(pid));
-            _registry.register(pid, addr, root);
+            _registry.register(pid, addr, root, "FairSharingToken");
             projectIds.push(pid);
         }
     }
@@ -231,6 +231,11 @@ contract ProjectTest is Test {
         {
             console2.log("claim uid:");
             console2.logBytes32(claimAttestationUid);
+
+            address project = _registry.getProject(params.pid);
+            address token = IProject(project).getToken();
+            uint256 amount = IERC20(token).balanceOf(attester);
+            console2.log("attester token amount: %d", amount);
         }
     }
 
@@ -241,16 +246,16 @@ contract ProjectTest is Test {
         uint256 attesterIndex = 0;
         bytes32 contributionAttestationUid = prepare(pid, cid, attesterIndex, token);
 
-        uint8[] memory values = new uint8[](10);
-        values[0] = 0;
+        uint8[] memory values = new uint8[](_attesters.length);
+        values[0] = 1;
         values[1] = 1;
         values[2] = 2;
         values[3] = 1;
         values[4] = 2;
         values[5] = 1;
-        values[6] = 0;
-        values[7] = 0;
-        values[8] = 0;
+        values[6] = 3;
+        values[7] = 1;
+        values[8] = 1;
         values[9] = 1;
 
         for (uint256 i = 0; i < values.length; i++) {
