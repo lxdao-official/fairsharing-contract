@@ -5,6 +5,7 @@ import "forge-std/console2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "./IProjectRegister.sol";
 import "./IProject.sol";
@@ -17,6 +18,10 @@ contract ProjectRegistry is Ownable, IProjectRegister {
 
     constructor(address _signer) {
         signer = _signer;
+    }
+
+    function getSigner() public view returns (address) {
+        return signer;
     }
 
     function updateSigner(address _signer) external onlyOwner {
@@ -46,7 +51,7 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         //        }
 
         bytes32 salt = keccak256(abi.encodePacked(pid));
-        Project _project = new Project{salt: salt}(pid, manager, verifyRoot);
+        Project _project = new Project{salt: salt}(address(this), pid, manager, verifyRoot);
         _project.initialize();
 
         projectAddress = address(_project);
@@ -60,10 +65,12 @@ contract ProjectRegistry is Ownable, IProjectRegister {
 }
 
 contract Project is AccessControl, IProject {
-    uint256 private pid;
+    address public register;
+    uint256 public pid;
     bytes32 public merkleRoot;
 
-    constructor(uint256 _pid, address _manager, bytes32 _merkleRoot) {
+    constructor(address _register, uint256 _pid, address _manager, bytes32 _merkleRoot) {
+        register = _register;
         pid = _pid;
         merkleRoot = _merkleRoot;
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -82,14 +89,16 @@ contract Project is AccessControl, IProject {
     ) external view returns (bool) {
         console2.log("Project onPassMakeContribution:");
 
-        (, , , , , , bytes32[] memory proof) = abi.decode(
+        (uint256 _pid, , bytes32[] memory proof, , , , ) = abi.decode(
             data,
-            (uint256, uint64, string, string, string, uint64, bytes32[])
+            (uint256, uint64, bytes32[], string, string, string, uint64)
         );
+
+        require(_pid == pid, "Make contribution verify pid failed.");
 
         require(
             MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Make contribution proof verify failed."
+            "Make contribution verify proof failed."
         );
 
         return true;
@@ -105,32 +114,62 @@ contract Project is AccessControl, IProject {
         address attester,
         bytes calldata data
     ) external view returns (bool) {
-        (, , , , bytes32[] memory proof) = abi.decode(
+        console2.log("Project onPassVerifyContribution:");
+
+        (uint256 _pid, , bytes32[] memory proof, , ) = abi.decode(
             data,
-            (uint256, uint64, bool, string, bytes32[])
+            (uint256, uint64, bytes32[], uint8, string)
         );
+
+        require(_pid == pid, "Make contribution verify pid failed.");
 
         require(
             MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Make vote proof verify failed."
+            "Make vote verify proof failed."
         );
 
         return true;
     }
 
     function onPassClaimContribution(
-        address attester,
-        bytes calldata data
+        Attestation calldata attestation
     ) external view returns (bool) {
-        (, , , , bytes32[] memory proof) = abi.decode(
-            data,
-            (uint256, uint64, bool, string, bytes32[])
+        console2.log("Project onPassClaimContribution:");
+
+        (
+            uint256 _pid,
+            uint64 cid,
+            bytes32[] memory proof,
+            address[] memory voters,
+            uint8[] memory values,
+            uint64 token,
+            bytes memory signature
+        ) = abi.decode(
+                attestation.data,
+                (uint256, uint64, bytes32[], address[], uint8[], uint64, bytes)
+            );
+
+        // verify pid
+        require(_pid == pid, "Make contribution verify pid failed.");
+
+        // verify proof
+        require(
+            MerkleProof.verify(
+                proof,
+                merkleRoot,
+                keccak256(abi.encodePacked(attestation.attester))
+            ),
+            "Make claim verify proof failed."
         );
 
+        // verify signature
+        bytes32 hash = keccak256(abi.encode(attestation.attester, pid, cid, attestation.refUID));
         require(
-            MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Make vote proof verify failed."
+            ECDSA.recover(hash, signature) == IProjectRegister(register).getSigner(),
+            "Make claim verify signature failed"
         );
+
+        // verify votes
 
         return true;
     }

@@ -22,14 +22,14 @@ contract ClaimResolver is SchemaResolver {
         Attestation calldata attestation,
         uint256 /*value*/
     ) internal override returns (bool) {
-        (uint256 pid, , , , ) = abi.decode(
+        (uint256 pid, , , , , , ) = abi.decode(
             attestation.data,
-            (uint256, uint64, bool, string, bytes32[])
+            (uint256, uint64, bytes32[], address[], uint8[], uint64, bytes)
         );
 
         address project = IProjectRegister(_projectRegister).getProject(pid);
         require(project != address(0), "Contribution project not found.");
-        return IProject(project).onPassClaimContribution(attestation.attester, attestation.data);
+        return IProject(project).onPassClaimContribution(attestation);
     }
 
     function onRevoke(

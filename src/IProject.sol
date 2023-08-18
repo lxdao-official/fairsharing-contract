@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
+
 interface IProject {
     function updateMerkleRoot(bytes32 _merkleRoot) external;
 
@@ -16,5 +18,5 @@ interface IProject {
         bytes calldata data
     ) external returns (bool);
 
-    function onPassClaimContribution(address attester, bytes calldata data) external returns (bool);
+    function onPassClaimContribution(Attestation calldata attestation) external returns (bool);
 }

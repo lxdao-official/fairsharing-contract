@@ -25,7 +25,7 @@ contract ContributionResolver is Ownable, SchemaResolver {
     ) internal override returns (bool) {
         (uint256 pid, , , , , , ) = abi.decode(
             attestation.data,
-            (uint256, uint64, string, string, string, uint64, bytes32[])
+            (uint256, uint64, bytes32[], string, string, string, uint64)
         );
 
         address project = IProjectRegister(_projectRegister).getProject(pid);
