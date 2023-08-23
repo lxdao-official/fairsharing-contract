@@ -13,7 +13,9 @@ import "./ProjectToken.sol";
 
 contract ProjectRegistry is Ownable, IProjectRegister {
     mapping(uint256 => address) public projects;
-    //    mapping(uint256 => bytes32) public voteVerifiers;
+
+    // The number of projects created, used to give an incremental id to each one
+    uint256 public projectsCount;
 
     address public signer;
 
@@ -29,23 +31,17 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         signer = _signer;
     }
 
-    //    function updateVoteVerifiers(uint256 pid, bytes32 verifier) external {
-    //        IProject(projects[pid]).updateMerkleRoot(verifier);
-    //    }
-
     function register(
-        uint256 pid,
         address owner,
         address[] memory members,
         string memory tokenSymbol
-    ) external returns (address projectAddress) {
-        require(projects[pid] == address(0), "duplicated pid");
+    ) external returns (address projectAddress, uint256 pid) {
+        pid = projectsCount++;
 
         bytes32 salt = keccak256(abi.encodePacked(pid));
         Project _project = new Project{salt: salt}(address(this), pid, owner, members, tokenSymbol);
 
         projectAddress = address(_project);
-
         projects[pid] = projectAddress;
     }
 

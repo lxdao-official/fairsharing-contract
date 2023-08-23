@@ -65,9 +65,9 @@ contract ProjectTest is Test {
         // Get Root
         //        bytes32 root = _merkleTree.getRoot(_proofData);
 
-        for (uint256 pid = 100; pid < 110; pid++) {
-            address addr = makeAddr(Strings.toString(pid));
-            _registry.register(pid, addr, _attesters, "FairSharingToken");
+        for (uint256 i = 100; i < 110; i++) {
+            address addr = makeAddr(Strings.toString(i));
+            (, uint256 pid) = _registry.register(addr, _attesters, "FairSharingToken");
             projectIds.push(pid);
         }
     }
