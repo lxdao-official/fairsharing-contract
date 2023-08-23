@@ -8,12 +8,12 @@ interface IProjectRegister {
 
     function updateSigner(address _signer) external;
 
-    function updateVoteVerifiers(uint256 pid, bytes32 verifier) external;
+    //    function updateVoteVerifiers(uint256 pid, bytes32 verifier) external;
 
     function register(
         uint256 pid,
         address manager,
-        bytes32 verifyRoot,
+        address[] memory members,
         string memory tokenSymbol
     ) external returns (address);
 }

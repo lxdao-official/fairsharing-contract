@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "forge-std/StdMath.sol";
 
 import "./IProjectRegister.sol";
 import "./IProject.sol";
@@ -14,7 +13,7 @@ import "./ProjectToken.sol";
 
 contract ProjectRegistry is Ownable, IProjectRegister {
     mapping(uint256 => address) public projects;
-    mapping(uint256 => bytes32) public voteVerifiers;
+    //    mapping(uint256 => bytes32) public voteVerifiers;
 
     address public signer;
 
@@ -30,37 +29,20 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         signer = _signer;
     }
 
-    function updateVoteVerifiers(uint256 pid, bytes32 verifier) external {
-        IProject(projects[pid]).updateMerkleRoot(verifier);
-    }
+    //    function updateVoteVerifiers(uint256 pid, bytes32 verifier) external {
+    //        IProject(projects[pid]).updateMerkleRoot(verifier);
+    //    }
 
     function register(
         uint256 pid,
-        address manager,
-        bytes32 verifyRoot,
+        address owner,
+        address[] memory members,
         string memory tokenSymbol
     ) external returns (address projectAddress) {
-        //        bytes memory initCode = abi.encodePacked(type(Seaport).creationCode, abi.encode(pid));
-        //        address _project = Create2.computeAddress(bytes32(salt), keccak256(initCode));
-        //        if (_project == address(0)) revert AccountCreationFailed();
-        //        if (initData.length != 0) {
-        //            (bool success, bytes memory result) = _project.call(initData);
-        //
-        //            if (!success) {
-        //                assembly {
-        //                    revert(add(result, 32), mload(result))
-        //                }
-        //            }
-        //        }
+        require(projects[pid] == address(0), "duplicated pid");
 
         bytes32 salt = keccak256(abi.encodePacked(pid));
-        Project _project = new Project{salt: salt}(
-            address(this),
-            pid,
-            manager,
-            verifyRoot,
-            tokenSymbol
-        );
+        Project _project = new Project{salt: salt}(address(this), pid, owner, members, tokenSymbol);
 
         projectAddress = address(_project);
 
@@ -72,30 +54,36 @@ contract ProjectRegistry is Ownable, IProjectRegister {
     }
 }
 
-contract Project is AccessControl, IProject {
+contract Project is Ownable, AccessControl, IProject {
     address public register;
     uint256 public pid;
-    bytes32 public merkleRoot;
+    //    bytes32 public merkleRoot;
+    mapping(address => bool) members;
 
     IProjectToken public token;
 
     constructor(
         address _register,
         uint256 _pid,
-        address _manager,
-        bytes32 _merkleRoot,
+        address _owner,
+        address[] memory _members,
         string memory tokenSymbol
     ) {
         register = _register;
         pid = _pid;
-        merkleRoot = _merkleRoot;
+        //        merkleRoot = _merkleRoot;
 
-        initialize(_manager, tokenSymbol);
+        address[] memory empty = new address[](0);
+        _setMembers(_members, empty);
+
+        initialize(_owner, tokenSymbol);
     }
 
-    function initialize(address _manager, string memory tokenSymbol) public {
+    function initialize(address _owner, string memory tokenSymbol) private {
+        _transferOwnership(_owner);
+
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _grantRole(DEFAULT_ADMIN_ROLE, _manager);
+        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
 
         token = new ProjectToken(tokenSymbol, tokenSymbol);
     }
@@ -104,8 +92,24 @@ contract Project is AccessControl, IProject {
         return address(token);
     }
 
-    function updateMerkleRoot(bytes32 _merkleRoot) public {
-        merkleRoot = _merkleRoot;
+    //    function updateMerkleRoot(bytes32 _merkleRoot) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //        merkleRoot = _merkleRoot;
+    //    }
+
+    function _setMembers(address[] memory addList, address[] memory removeList) internal {
+        for (uint256 i = 0; i < addList.length; i++) {
+            members[addList[i]] = true;
+        }
+        for (uint256 i = 0; i < removeList.length; i++) {
+            members[removeList[i]] = false;
+        }
+    }
+
+    function setMembers(
+        address[] memory addList,
+        address[] memory removeList
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setMembers(addList, removeList);
     }
 
     function countVotesResult(
@@ -128,17 +132,14 @@ contract Project is AccessControl, IProject {
         address attester,
         bytes calldata data
     ) external view returns (bool) {
-        (uint256 _pid, , bytes32[] memory proof, , , , ) = abi.decode(
+        (uint256 _pid, , , , , ) = abi.decode(
             data,
-            (uint256, uint64, bytes32[], string, string, string, uint64)
+            (uint256, uint64, string, string, string, uint64)
         );
 
         require(_pid == pid, "Make contribution verify pid failed.");
 
-        require(
-            MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Make contribution verify proof failed."
-        );
+        require(members[attester] == true, "Make vote verify failed.");
 
         return true;
     }
@@ -151,17 +152,11 @@ contract Project is AccessControl, IProject {
         address attester,
         bytes calldata data
     ) external view returns (bool) {
-        (uint256 _pid, , bytes32[] memory proof, , ) = abi.decode(
-            data,
-            (uint256, uint64, bytes32[], uint8, string)
-        );
+        (uint256 _pid, , , ) = abi.decode(data, (uint256, uint64, uint8, string));
 
         require(_pid == pid, "Make contribution verify pid failed.");
 
-        require(
-            MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Make vote verify proof failed."
-        );
+        require(members[attester] == true, "Make vote verify failed.");
 
         return true;
     }
@@ -171,24 +166,16 @@ contract Project is AccessControl, IProject {
         (
             uint256 _pid,
             uint64 cid,
-            bytes32[] memory proof,
             address[] memory voters,
             uint8[] memory values,
             uint64 amount,
             bytes memory signature
-        ) = abi.decode(
-                attestation.data,
-                (uint256, uint64, bytes32[], address[], uint8[], uint64, bytes)
-            );
+        ) = abi.decode(attestation.data, (uint256, uint64, address[], uint8[], uint64, bytes));
 
         // verify pid
         require(_pid == pid, "Make contribution verify pid failed.");
 
-        // verify proof
-        require(
-            MerkleProof.verify(proof, merkleRoot, keccak256(abi.encodePacked(attester))),
-            "Make claim verify proof failed."
-        );
+        require(members[attester] == true, "Make vote verify failed.");
 
         // verify signature
         bytes32 hash = keccak256(abi.encode(attester, pid, cid, attestation.refUID));
@@ -200,6 +187,7 @@ contract Project is AccessControl, IProject {
         // count votes
         bool result = countVotesResult(voters, values);
         if (result) {
+            // mint
             IProjectToken(token).mint(attester, amount);
             return true;
         } else {

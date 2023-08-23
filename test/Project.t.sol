@@ -63,11 +63,11 @@ contract ProjectTest is Test {
             _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
         }
         // Get Root
-        bytes32 root = _merkleTree.getRoot(_proofData);
+        //        bytes32 root = _merkleTree.getRoot(_proofData);
 
         for (uint256 pid = 100; pid < 110; pid++) {
             address addr = makeAddr(Strings.toString(pid));
-            _registry.register(pid, addr, root, "FairSharingToken");
+            _registry.register(pid, addr, _attesters, "FairSharingToken");
             projectIds.push(pid);
         }
     }
@@ -77,13 +77,13 @@ contract ProjectTest is Test {
         _voteResolver = new VoteResolver(_eas, _registry);
         _claimResolver = new ClaimResolver(_eas, _registry);
 
-        _contributionSchemaTemplate = "uint256 pid, uint64 cid, bytes32[] proof, string title, string detail, string poc, uint64 token";
+        _contributionSchemaTemplate = "uint256 pid, uint64 cid, string title, string detail, string poc, uint64 token";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
-        _voteSchemaTemplate = "uint256 pid, uint64 cid, , bytes32[] proof uint8 value, string reason";
+        _voteSchemaTemplate = "uint256 pid, uint64 cid , uint8 value, string reason";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
-        _claimSchemaTemplate = "uint256 pid, uint64 cid, bytes32[] proof, address[] voters, uint8[] values, uint64 token, bytes signature";
+        _claimSchemaTemplate = "uint256 pid, uint64 cid, address[] voters, uint8[] values, uint64 token, bytes signature";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, true);
     }
 
@@ -110,7 +110,6 @@ contract ProjectTest is Test {
                     data: abi.encode(
                         pid,
                         cid,
-                        _merkleTree.getProof(_proofData, attesterIndex),
                         "first contribution title",
                         "first contribution detail",
                         "the poc",
@@ -133,14 +132,13 @@ contract ProjectTest is Test {
             (
                 uint256 _pid,
                 uint64 _cid,
-                ,
                 string memory title,
                 string memory detail,
                 string memory poc,
                 uint64 _token
             ) = abi.decode(
                     contributionAttestation.data,
-                    (uint256, uint64, bytes32[], string, string, string, uint64)
+                    (uint256, uint64, string, string, string, uint64)
                 );
             console2.log("pid:%d \n  cid:%d \n  token:%d", _pid, _cid, _token);
             console2.log("title:%s \n  detail:%s \n  poc:%s", title, detail, poc);
@@ -156,7 +154,6 @@ contract ProjectTest is Test {
         string memory reason
     ) private {
         console2.log("---------------------- make vote attest ----------------------");
-        uint256 _voteIndex = voteIndex;
 
         vm.startPrank(_attesters[voteIndex]);
         bytes32 voteAttestationUid = _eas.attest(
@@ -167,21 +164,15 @@ contract ProjectTest is Test {
                     expirationTime: 0,
                     revocable: true,
                     refUID: contributionAttestationUid,
-                    data: abi.encode(
-                        pid,
-                        cid,
-                        _merkleTree.getProof(_proofData, _voteIndex),
-                        value,
-                        reason
-                    ),
+                    data: abi.encode(pid, cid, value, reason),
                     value: 0
                 })
             })
         );
         vm.stopPrank();
         {
+            console2.log("vote:%d uid:", value);
             console2.logBytes32(voteAttestationUid);
-            console2.log(value);
         }
     }
 
@@ -196,8 +187,6 @@ contract ProjectTest is Test {
 
     function claim(ClaimParams memory params) private {
         console2.log("---------------------- make claim attest ----------------------");
-        console2.log(_signer);
-
         address attester = _attesters[params.index];
 
         bytes32 hash = keccak256(abi.encode(attester, params.pid, params.cid, params.uid));
@@ -206,7 +195,6 @@ contract ProjectTest is Test {
         bytes memory data = abi.encode(
             params.pid,
             params.cid,
-            _merkleTree.getProof(_proofData, params.index),
             _attesters,
             params.values,
             params.token,

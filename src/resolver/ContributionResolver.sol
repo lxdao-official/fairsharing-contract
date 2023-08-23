@@ -7,12 +7,16 @@ import "../IProjectRegister.sol";
 import "../IProject.sol";
 
 contract ContributionResolver is Ownable, SchemaResolver {
-    IProjectRegister private _projectRegister;
+    IProjectRegister public projectRegister;
 
     error InvalidCaller();
 
-    constructor(IEAS eas, IProjectRegister projectRegister) SchemaResolver(eas) {
-        _projectRegister = projectRegister;
+    constructor(IEAS eas, IProjectRegister _projectRegister) SchemaResolver(eas) {
+        projectRegister = _projectRegister;
+    }
+
+    function updateProjectRegister(IProjectRegister _projectRegister) external onlyOwner {
+        projectRegister = _projectRegister;
     }
 
     function isPayable() public pure override returns (bool) {
@@ -23,12 +27,12 @@ contract ContributionResolver is Ownable, SchemaResolver {
         Attestation calldata attestation,
         uint256 /*value*/
     ) internal override returns (bool) {
-        (uint256 pid, , , , , , ) = abi.decode(
+        (uint256 pid, , , , , ) = abi.decode(
             attestation.data,
-            (uint256, uint64, bytes32[], string, string, string, uint64)
+            (uint256, uint64, string, string, string, uint64)
         );
 
-        address project = IProjectRegister(_projectRegister).getProject(pid);
+        address project = IProjectRegister(projectRegister).getProject(pid);
         require(project != address(0), "Contribution project not found.");
         return IProject(project).onPassMakeContribution(attestation.attester, attestation.data);
     }
