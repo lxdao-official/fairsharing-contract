@@ -62,12 +62,10 @@ contract ProjectTest is Test {
         for (uint256 i = 0; i < _attesters.length; i++) {
             _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
         }
-        // Get Root
-        //        bytes32 root = _merkleTree.getRoot(_proofData);
 
         for (uint256 i = 100; i < 110; i++) {
             address addr = makeAddr(Strings.toString(i));
-            (, uint256 pid) = _registry.register(addr, _attesters, "FairSharingToken");
+            (, uint256 pid) = _registry.create(addr, _attesters, "FairSharingToken");
             projectIds.push(pid);
         }
     }
@@ -80,22 +78,19 @@ contract ProjectTest is Test {
         _contributionSchemaTemplate = "uint256 pid, uint64 cid, string title, string detail, string poc, uint64 token";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
-        _voteSchemaTemplate = "uint256 pid, uint64 cid , uint8 value, string reason";
+        _voteSchemaTemplate = "uint256 pid, uint64 cid, uint8 value, string reason";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
         _claimSchemaTemplate = "uint256 pid, uint64 cid, address[] voters, uint8[] values, uint64 token, bytes signature";
-        _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, true);
+        _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
     }
 
     function prepare(
+        address attester,
         uint256 pid,
         uint64 cid,
-        uint256 attesterIndex,
         uint64 token
     ) private returns (bytes32 contributionAttestationUid) {
-        console2.log("---------------------- make contribution attest ----------------------");
-        address attester = _attesters[attesterIndex];
-
         vm.startPrank(attester);
         contributionAttestationUid = _eas.attest(
             AttestationRequest({
@@ -120,43 +115,31 @@ contract ProjectTest is Test {
             })
         );
         vm.stopPrank();
+    }
 
-        {
-            console2.log("contribution uid:");
-            console2.logBytes32(contributionAttestationUid);
-
-            Attestation memory contributionAttestation = _eas.getAttestation(
-                contributionAttestationUid
-            );
-
-            (
-                uint256 _pid,
-                uint64 _cid,
-                string memory title,
-                string memory detail,
-                string memory poc,
-                uint64 _token
-            ) = abi.decode(
-                    contributionAttestation.data,
-                    (uint256, uint64, string, string, string, uint64)
-                );
-            console2.log("pid:%d \n  cid:%d \n  token:%d", _pid, _cid, _token);
-            console2.log("title:%s \n  detail:%s \n  poc:%s", title, detail, poc);
-        }
+    function revokeContribution(address attester, bytes32 uid) private {
+        vm.startPrank(attester);
+        _eas.revoke(
+            RevocationRequest({
+                schema: keccak256(
+                    abi.encodePacked(_contributionSchemaTemplate, _contributionResolver, true)
+                ),
+                data: RevocationRequestData({uid: uid, value: 0})
+            })
+        );
+        vm.stopPrank();
     }
 
     function vote(
         bytes32 contributionAttestationUid,
+        address attester,
         uint256 pid,
         uint64 cid,
-        uint256 voteIndex,
         uint8 value,
         string memory reason
-    ) private {
-        console2.log("---------------------- make vote attest ----------------------");
-
-        vm.startPrank(_attesters[voteIndex]);
-        bytes32 voteAttestationUid = _eas.attest(
+    ) private returns (bytes32 voteAttestationUid) {
+        vm.startPrank(attester);
+        voteAttestationUid = _eas.attest(
             AttestationRequest({
                 schema: keccak256(abi.encodePacked(_voteSchemaTemplate, _voteResolver, true)),
                 data: AttestationRequestData({
@@ -170,27 +153,34 @@ contract ProjectTest is Test {
             })
         );
         vm.stopPrank();
-        {
-            console2.log("vote:%d uid:", value);
-            console2.logBytes32(voteAttestationUid);
-        }
+    }
+
+    function revokeVote(bytes32 voteUid, address attester) private {
+        vm.startPrank(attester);
+        _eas.revoke(
+            RevocationRequest({
+                schema: keccak256(abi.encodePacked(_voteSchemaTemplate, _voteResolver, true)),
+                data: RevocationRequestData({uid: voteUid, value: 0})
+            })
+        );
+        vm.stopPrank();
     }
 
     struct ClaimParams {
-        bytes32 uid;
         uint256 pid;
         uint64 cid;
-        uint256 index;
+        address attester;
         uint64 token;
         uint8[] values;
     }
 
-    function claim(ClaimParams memory params) private {
-        console2.log("---------------------- make claim attest ----------------------");
-        address attester = _attesters[params.index];
+    function claim(ClaimParams memory params) private returns (bytes32 claimAttestationUid) {
+        bytes32 hash = keccak256(abi.encode(params.attester, params.pid, params.cid));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            _signerPrivateKey,
+            ECDSA.toEthSignedMessageHash(hash)
+        );
 
-        bytes32 hash = keccak256(abi.encode(attester, params.pid, params.cid, params.uid));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, hash);
         bytes memory signature = abi.encodePacked(r, s, v);
         bytes memory data = abi.encode(
             params.pid,
@@ -201,38 +191,89 @@ contract ProjectTest is Test {
             signature
         );
 
-        vm.startPrank(attester);
-        bytes32 claimAttestationUid = _eas.attest(
+        vm.startPrank(params.attester);
+        claimAttestationUid = _eas.attest(
             AttestationRequest({
-                schema: keccak256(abi.encodePacked(_claimSchemaTemplate, _claimResolver, true)),
+                schema: keccak256(abi.encodePacked(_claimSchemaTemplate, _claimResolver, false)),
                 data: AttestationRequestData({
-                    recipient: attester,
+                    recipient: params.attester,
                     expirationTime: 0,
-                    revocable: true,
-                    refUID: params.uid,
+                    revocable: false,
+                    refUID: "",
                     data: data,
                     value: 0
                 })
             })
         );
         vm.stopPrank();
-        {
-            console2.log("claim uid:");
-            console2.logBytes32(claimAttestationUid);
-
-            address project = _registry.getProject(params.pid);
-            address token = IProject(project).getToken();
-            uint256 amount = IERC20(token).balanceOf(attester);
-            console2.log("attester token amount: %d", amount);
-        }
     }
 
-    function testPrepareToVote() public {
+    function testPrepareContribution() public {
         uint256 pid = projectIds[0];
         uint64 cid = uint64(123);
         uint64 token = 2000;
         uint256 attesterIndex = 0;
-        bytes32 contributionAttestationUid = prepare(pid, cid, attesterIndex, token);
+
+        console2.log("---------------------- make contribution attest ----------------------");
+        bytes32 contributionAttestationUid = prepare(_attesters[attesterIndex], pid, cid, token);
+        {
+            console2.log("contribution uid:");
+            console2.logBytes32(contributionAttestationUid);
+
+            Attestation memory attestation = _eas.getAttestation(contributionAttestationUid);
+            console2.log("revocation time:%d", attestation.revocationTime);
+        }
+
+        console2.log("---------------------- revoke contribution ----------------------");
+        revokeContribution(_attesters[attesterIndex], contributionAttestationUid);
+        {
+            Attestation memory attestation = _eas.getAttestation(contributionAttestationUid);
+            console2.log("revocation time:%d", attestation.revocationTime);
+        }
+    }
+
+    function testVote() public {
+        uint256 pid = projectIds[0];
+        uint64 cid = uint64(123);
+        uint64 token = 2000;
+        uint256 attesterIndex = 0;
+        bytes32 contributionAttestationUid = prepare(_attesters[attesterIndex], pid, cid, token);
+
+        uint8[] memory values = new uint8[](1);
+        values[0] = 1;
+
+        for (uint256 i = 0; i < values.length; i++) {
+            console2.log("---------------------- make vote attest ----------------------");
+            bytes32 voteAttestationUid = vote(
+                contributionAttestationUid,
+                _attesters[attesterIndex],
+                pid,
+                cid,
+                values[i],
+                "good contribution"
+            );
+            {
+                console2.log("vote:%d uid:", values[i]);
+                console2.logBytes32(voteAttestationUid);
+
+                Attestation memory attestation = _eas.getAttestation(voteAttestationUid);
+                console2.log("revocation time:%d", attestation.revocationTime);
+            }
+            console2.log("---------------------- revoke vote ----------------------");
+            revokeVote(voteAttestationUid, _attesters[attesterIndex]);
+            {
+                Attestation memory attestation = _eas.getAttestation(voteAttestationUid);
+                console2.log("revocation time:%d", attestation.revocationTime);
+            }
+        }
+    }
+
+    function testClaim() public {
+        uint256 pid = projectIds[0];
+        uint64 cid = uint64(123);
+        uint64 token = 2000;
+        uint256 attesterIndex = 0;
+        bytes32 contributionAttestationUid = prepare(_attesters[attesterIndex], pid, cid, token);
 
         uint8[] memory values = new uint8[](_attesters.length);
         values[0] = 1;
@@ -247,9 +288,27 @@ contract ProjectTest is Test {
         values[9] = 1;
 
         for (uint256 i = 0; i < values.length; i++) {
-            vote(contributionAttestationUid, pid, cid, i, values[i], "good contribution");
+            vote(
+                contributionAttestationUid,
+                _attesters[attesterIndex],
+                pid,
+                cid,
+                values[i],
+                "good contribution"
+            );
         }
+        console2.log("---------------------- make claim attest ----------------------");
+        bytes32 claimAttestationUid = claim(
+            ClaimParams(pid, cid, _attesters[attesterIndex], token, values)
+        );
+        {
+            console2.log("claim uid:");
+            console2.logBytes32(claimAttestationUid);
 
-        claim(ClaimParams(contributionAttestationUid, pid, cid, attesterIndex, token, values));
+            address project = _registry.getProject(pid);
+            address tokenContract = IProject(project).getToken();
+            uint256 amount = IERC20(tokenContract).balanceOf(_attesters[attesterIndex]);
+            console2.log("attester token amount: %d", amount);
+        }
     }
 }

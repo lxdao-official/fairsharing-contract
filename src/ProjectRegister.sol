@@ -12,11 +12,13 @@ import "./IProject.sol";
 import "./ProjectToken.sol";
 
 contract ProjectRegistry is Ownable, IProjectRegister {
+    // Created projects
     mapping(uint256 => address) public projects;
 
     // The number of projects created, used to give an incremental id to each one
     uint256 public projectsCount;
 
+    // The signer for project claim.
     address public signer;
 
     constructor(address _signer) {
@@ -31,12 +33,13 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         signer = _signer;
     }
 
-    function register(
+    function create(
         address owner,
         address[] memory members,
         string memory tokenSymbol
     ) external returns (address projectAddress, uint256 pid) {
-        pid = projectsCount++;
+        projectsCount++;
+        pid = projectsCount;
 
         bytes32 salt = keccak256(abi.encodePacked(pid));
         Project _project = new Project{salt: salt}(address(this), pid, owner, members, tokenSymbol);
@@ -51,12 +54,15 @@ contract ProjectRegistry is Ownable, IProjectRegister {
 }
 
 contract Project is Ownable, AccessControl, IProject {
+    using ECDSA for bytes32;
+
     address public register;
     uint256 public pid;
-    //    bytes32 public merkleRoot;
-    mapping(address => bool) members;
+    mapping(address => bool) public members;
 
     IProjectToken public token;
+
+    mapping(uint64 => address) public claims;
 
     constructor(
         address _register,
@@ -67,7 +73,6 @@ contract Project is Ownable, AccessControl, IProject {
     ) {
         register = _register;
         pid = _pid;
-        //        merkleRoot = _merkleRoot;
 
         address[] memory empty = new address[](0);
         _setMembers(_members, empty);
@@ -81,16 +86,12 @@ contract Project is Ownable, AccessControl, IProject {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
 
-        token = new ProjectToken(tokenSymbol, tokenSymbol);
+        token = new ProjectToken("FSToken", tokenSymbol);
     }
 
     function getToken() external view returns (address) {
         return address(token);
     }
-
-    //    function updateMerkleRoot(bytes32 _merkleRoot) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    //        merkleRoot = _merkleRoot;
-    //    }
 
     function _setMembers(address[] memory addList, address[] memory removeList) internal {
         for (uint256 i = 0; i < addList.length; i++) {
@@ -108,10 +109,7 @@ contract Project is Ownable, AccessControl, IProject {
         _setMembers(addList, removeList);
     }
 
-    function countVotesResult(
-        address[] memory,
-        uint8[] memory values
-    ) internal pure returns (bool) {
+    function countVotesResult(address[] memory, uint8[] memory values) private pure returns (bool) {
         // 1:For 2:Against 3:Abstain
         uint256 forResult = 0;
         for (uint256 i = 0; i < values.length; i++) {
@@ -140,7 +138,19 @@ contract Project is Ownable, AccessControl, IProject {
         return true;
     }
 
-    function onPassRevokeContribution(address, bytes calldata) external pure returns (bool) {
+    function onPassRevokeContribution(
+        address attester,
+        bytes calldata data
+    ) external view returns (bool) {
+        (uint256 _pid, , , , , ) = abi.decode(
+            data,
+            (uint256, uint64, string, string, string, uint64)
+        );
+
+        require(_pid == pid, "Make contribution verify pid failed.");
+
+        require(members[attester] == true, "Revoke vote verify failed.");
+
         return true;
     }
 
@@ -168,15 +178,19 @@ contract Project is Ownable, AccessControl, IProject {
             bytes memory signature
         ) = abi.decode(attestation.data, (uint256, uint64, address[], uint8[], uint64, bytes));
 
+        require(claims[cid] == address(0), "This contribution was claimed");
+
         // verify pid
         require(_pid == pid, "Make contribution verify pid failed.");
 
+        // verify member
         require(members[attester] == true, "Make vote verify failed.");
 
         // verify signature
-        bytes32 hash = keccak256(abi.encode(attester, pid, cid, attestation.refUID));
+        bytes32 hash = keccak256(abi.encode(attester, pid, cid));
         require(
-            ECDSA.recover(hash, signature) == IProjectRegister(register).getSigner(),
+            hash.toEthSignedMessageHash().recover(signature) ==
+                IProjectRegister(register).getSigner(),
             "Make claim verify signature failed"
         );
 
@@ -185,6 +199,9 @@ contract Project is Ownable, AccessControl, IProject {
         if (result) {
             // mint
             IProjectToken(token).mint(attester, amount);
+
+            // store
+            claims[cid] = attester;
             return true;
         } else {
             return false;

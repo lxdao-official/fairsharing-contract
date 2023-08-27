@@ -8,7 +8,7 @@ interface IProjectRegister {
 
     function updateSigner(address _signer) external;
 
-    function register(
+    function create(
         address admin,
         address[] memory members,
         string memory tokenSymbol
