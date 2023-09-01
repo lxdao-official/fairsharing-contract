@@ -48,27 +48,28 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         projectsCount++;
     }
 
-    function totalProject() external view returns (uint256) {
-        return projectsCount;
-    }
-
-    function ownerLatestProject(
+    function getOwnerLatestProject(
         address owner,
         uint256 startIndex,
         uint256 endIndex
-    ) external view returns (address projectAddress) {
-        if (startIndex >= 0 && startIndex < endIndex && endIndex < projectsCount) {
-            projectAddress = address(0);
-            for (uint256 i = endIndex; i >= startIndex; i--) {
-                address _address = projectsIndexer[i];
-                if (owner == IProject(_address).getOwner()) {
-                    projectAddress = _address;
+    ) external view returns (address) {
+        address projectAddress;
+        if (startIndex >= 0 && startIndex <= endIndex && endIndex < projectsCount) {
+            for (uint256 i = endIndex; i >= startIndex; ) {
+                if (owner == IProject(projectsIndexer[i]).getOwner()) {
+                    projectAddress = projectsIndexer[i];
+                    break;
+                }
+                if (i > 0) {
+                    i--;
+                } else {
                     break;
                 }
             }
         } else {
-            revert("");
+            revert("startIndex or endIndex out of range.");
         }
+        return projectAddress;
     }
 }
 
@@ -110,7 +111,7 @@ contract Project is Ownable, AccessControl, IProject {
     }
 
     function getOwner() external view returns (address) {
-        return this.getOwner();
+        return this.owner();
     }
 
     function getToken() external view returns (address) {

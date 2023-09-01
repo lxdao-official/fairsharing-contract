@@ -16,8 +16,8 @@ import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
 contract ProjectTest is Test {
     address[] private _attesters;
     uint256[] private _attesterPrivateKeys;
-    Merkle private _merkleTree;
-    bytes32[] private _proofData;
+    //    Merkle private _merkleTree;
+    //    bytes32[] private _proofData;
 
     ISchemaRegistry private _schemaRegistry;
     IEAS private _eas;
@@ -55,17 +55,21 @@ contract ProjectTest is Test {
     }
 
     function registerProject() private {
-        // Initialize
-        _merkleTree = new Merkle();
-        // Toy Data
-        _proofData = new bytes32[](_attesters.length);
-        for (uint256 i = 0; i < _attesters.length; i++) {
-            _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
-        }
+        //        // Initialize
+        //        _merkleTree = new Merkle();
+        //        // Toy Data
+        //        _proofData = new bytes32[](_attesters.length);
+        //        for (uint256 i = 0; i < _attesters.length; i++) {
+        //            _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
+        //        }
 
         for (uint256 i = 100; i < 110; i++) {
             address addr = makeAddr(Strings.toString(i));
             address projectAddress = _registry.create(addr, _attesters, "FairSharingToken");
+
+            address latestProject = _registry.getOwnerLatestProject(addr, 0, i - 100);
+            assert(projectAddress == latestProject);
+
             projectAddresses.push(projectAddress);
         }
     }

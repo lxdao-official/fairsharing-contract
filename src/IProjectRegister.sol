@@ -12,9 +12,7 @@ interface IProjectRegister {
         string memory tokenSymbol
     ) external returns (address);
 
-    function totalProject() external view returns (uint256);
-
-    function ownerLatestProject(
+    function getOwnerLatestProject(
         address owner,
         uint256 startIndex,
         uint256 endIndex
