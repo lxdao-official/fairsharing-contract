@@ -12,8 +12,8 @@ import "./IProject.sol";
 import "./ProjectToken.sol";
 
 contract ProjectRegistry is Ownable, IProjectRegister {
-    // Created projects
-    mapping(uint256 => address) public projects;
+    // projects indexer
+    mapping(uint256 => address) public projectsIndexer;
 
     // The number of projects created, used to give an incremental id to each one
     uint256 public projectsCount;
@@ -37,19 +37,38 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         address owner,
         address[] memory members,
         string memory tokenSymbol
-    ) external returns (address projectAddress, uint256 pid) {
-        projectsCount++;
-        pid = projectsCount;
-
-        bytes32 salt = keccak256(abi.encodePacked(pid));
-        Project _project = new Project{salt: salt}(address(this), pid, owner, members, tokenSymbol);
+    ) external returns (address projectAddress) {
+        uint256 index = projectsCount;
+        bytes32 salt = keccak256(abi.encodePacked(index));
+        Project _project = new Project{salt: salt}(address(this), owner, members, tokenSymbol);
 
         projectAddress = address(_project);
-        projects[pid] = projectAddress;
+        projectsIndexer[index] = projectAddress;
+
+        projectsCount++;
     }
 
-    function getProject(uint256 pid) external view returns (address) {
-        return projects[pid];
+    function totalProject() external view returns (uint256) {
+        return projectsCount;
+    }
+
+    function ownerLatestProject(
+        address owner,
+        uint256 startIndex,
+        uint256 endIndex
+    ) external view returns (address projectAddress) {
+        if (startIndex >= 0 && startIndex < endIndex && endIndex < projectsCount) {
+            projectAddress = address(0);
+            for (uint256 i = endIndex; i >= startIndex; i--) {
+                address _address = projectsIndexer[i];
+                if (owner == IProject(_address).getOwner()) {
+                    projectAddress = _address;
+                    break;
+                }
+            }
+        } else {
+            revert("");
+        }
     }
 }
 
@@ -57,7 +76,6 @@ contract Project is Ownable, AccessControl, IProject {
     using ECDSA for bytes32;
 
     address public register;
-    uint256 public pid;
     mapping(address => bool) public members;
 
     IProjectToken public token;
@@ -66,13 +84,11 @@ contract Project is Ownable, AccessControl, IProject {
 
     constructor(
         address _register,
-        uint256 _pid,
         address _owner,
         address[] memory _members,
         string memory tokenSymbol
     ) {
         register = _register;
-        pid = _pid;
 
         address[] memory empty = new address[](0);
         _setMembers(_members, empty);
@@ -87,6 +103,14 @@ contract Project is Ownable, AccessControl, IProject {
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
 
         token = new ProjectToken("FSToken", tokenSymbol);
+    }
+
+    function getClaims(uint64 cid) external view returns (address) {
+        return claims[cid];
+    }
+
+    function getOwner() external view returns (address) {
+        return this.getOwner();
     }
 
     function getToken() external view returns (address) {
@@ -109,6 +133,10 @@ contract Project is Ownable, AccessControl, IProject {
         _setMembers(addList, removeList);
     }
 
+    function version() public pure returns (string memory) {
+        return "1.0.0";
+    }
+
     function countVotesResult(address[] memory, uint8[] memory values) private pure returns (bool) {
         // 1:For 2:Against 3:Abstain
         uint256 forResult = 0;
@@ -122,72 +150,41 @@ contract Project is Ownable, AccessControl, IProject {
         return percentDelta >= passPercent;
     }
 
-    function onPassMakeContribution(
-        address attester,
-        bytes calldata data
-    ) external view returns (bool) {
-        (uint256 _pid, , , , , ) = abi.decode(
-            data,
-            (uint256, uint64, string, string, string, uint64)
-        );
-
-        require(_pid == pid, "Make contribution verify pid failed.");
-
-        require(members[attester] == true, "Make vote verify failed.");
-
+    function onPassMakeContribution(Attestation calldata attestation) external view returns (bool) {
+        require(members[attestation.attester] == true, "Make vote verify failed.");
         return true;
     }
 
     function onPassRevokeContribution(
-        address attester,
-        bytes calldata data
+        Attestation calldata attestation
     ) external view returns (bool) {
-        (uint256 _pid, , , , , ) = abi.decode(
-            data,
-            (uint256, uint64, string, string, string, uint64)
-        );
-
-        require(_pid == pid, "Make contribution verify pid failed.");
-
-        require(members[attester] == true, "Revoke vote verify failed.");
-
+        require(members[attestation.attester] == true, "Revoke vote verify failed.");
         return true;
     }
 
-    function onPassVerifyContribution(
-        address attester,
-        bytes calldata data
-    ) external view returns (bool) {
-        (uint256 _pid, , , ) = abi.decode(data, (uint256, uint64, uint8, string));
-
-        require(_pid == pid, "Make contribution verify pid failed.");
-
-        require(members[attester] == true, "Make vote verify failed.");
-
+    function onPassVoteContribution(Attestation calldata attestation) external view returns (bool) {
+        require(members[attestation.attester] == true, "Make vote verify failed.");
         return true;
     }
 
     function onPassClaimContribution(Attestation calldata attestation) external returns (bool) {
         address attester = attestation.attester;
+        // verify member
+        require(members[attester] == true, "Make vote verify failed.");
+
         (
-            uint256 _pid,
+            ,
             uint64 cid,
             address[] memory voters,
             uint8[] memory values,
             uint64 amount,
             bytes memory signature
-        ) = abi.decode(attestation.data, (uint256, uint64, address[], uint8[], uint64, bytes));
+        ) = abi.decode(attestation.data, (address, uint64, address[], uint8[], uint64, bytes));
 
         require(claims[cid] == address(0), "This contribution was claimed");
 
-        // verify pid
-        require(_pid == pid, "Make contribution verify pid failed.");
-
-        // verify member
-        require(members[attester] == true, "Make vote verify failed.");
-
         // verify signature
-        bytes32 hash = keccak256(abi.encode(attester, pid, cid));
+        bytes32 hash = keccak256(abi.encode(block.chainid, attester, cid));
         require(
             hash.toEthSignedMessageHash().recover(signature) ==
                 IProjectRegister(register).getSigner(),

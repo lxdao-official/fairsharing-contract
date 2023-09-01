@@ -34,7 +34,7 @@ contract ProjectTest is Test {
     ISchemaResolver private _claimResolver;
 
     IProjectRegister private _registry;
-    uint256[] projectIds;
+    address[] projectAddresses;
 
     function setUp() public {
         for (uint256 i = 0; i < 10; i++) {
@@ -65,29 +65,29 @@ contract ProjectTest is Test {
 
         for (uint256 i = 100; i < 110; i++) {
             address addr = makeAddr(Strings.toString(i));
-            (, uint256 pid) = _registry.create(addr, _attesters, "FairSharingToken");
-            projectIds.push(pid);
+            address projectAddress = _registry.create(addr, _attesters, "FairSharingToken");
+            projectAddresses.push(projectAddress);
         }
     }
 
     function registerSchemas() private {
-        _contributionResolver = new ContributionResolver(_eas, _registry);
-        _voteResolver = new VoteResolver(_eas, _registry);
-        _claimResolver = new ClaimResolver(_eas, _registry);
+        _contributionResolver = new ContributionResolver(_eas);
+        _voteResolver = new VoteResolver(_eas);
+        _claimResolver = new ClaimResolver(_eas);
 
-        _contributionSchemaTemplate = "uint256 pid, uint64 cid, string title, string detail, string poc, uint64 token";
+        _contributionSchemaTemplate = "address projectAddress, uint64 cid, string title, string detail, string poc, uint64 token";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
-        _voteSchemaTemplate = "uint256 pid, uint64 cid, uint8 value, string reason";
+        _voteSchemaTemplate = "address projectAddress, uint64 cid, uint8 value, string reason";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
-        _claimSchemaTemplate = "uint256 pid, uint64 cid, address[] voters, uint8[] values, uint64 token, bytes signature";
+        _claimSchemaTemplate = "address projectAddress, uint64 cid, address[] voters, uint8[] values, uint64 token, bytes signature";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
     }
 
     function prepare(
         address attester,
-        uint256 pid,
+        address projectAddress,
         uint64 cid,
         uint64 token
     ) private returns (bytes32 contributionAttestationUid) {
@@ -103,7 +103,7 @@ contract ProjectTest is Test {
                     revocable: true,
                     refUID: "",
                     data: abi.encode(
-                        pid,
+                        projectAddress,
                         cid,
                         "first contribution title",
                         "first contribution detail",
@@ -133,7 +133,7 @@ contract ProjectTest is Test {
     function vote(
         bytes32 contributionAttestationUid,
         address attester,
-        uint256 pid,
+        address projectAddress,
         uint64 cid,
         uint8 value,
         string memory reason
@@ -147,7 +147,7 @@ contract ProjectTest is Test {
                     expirationTime: 0,
                     revocable: true,
                     refUID: contributionAttestationUid,
-                    data: abi.encode(pid, cid, value, reason),
+                    data: abi.encode(projectAddress, cid, value, reason),
                     value: 0
                 })
             })
@@ -167,7 +167,7 @@ contract ProjectTest is Test {
     }
 
     struct ClaimParams {
-        uint256 pid;
+        address projectAddress;
         uint64 cid;
         address attester;
         uint64 token;
@@ -175,7 +175,7 @@ contract ProjectTest is Test {
     }
 
     function claim(ClaimParams memory params) private returns (bytes32 claimAttestationUid) {
-        bytes32 hash = keccak256(abi.encode(params.attester, params.pid, params.cid));
+        bytes32 hash = keccak256(abi.encode(block.chainid, params.attester, params.cid));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _signerPrivateKey,
             ECDSA.toEthSignedMessageHash(hash)
@@ -183,7 +183,7 @@ contract ProjectTest is Test {
 
         bytes memory signature = abi.encodePacked(r, s, v);
         bytes memory data = abi.encode(
-            params.pid,
+            params.projectAddress,
             params.cid,
             _attesters,
             params.values,
@@ -209,13 +209,18 @@ contract ProjectTest is Test {
     }
 
     function testPrepareContribution() public {
-        uint256 pid = projectIds[0];
+        address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
         uint64 token = 2000;
         uint256 attesterIndex = 0;
 
         console2.log("---------------------- make contribution attest ----------------------");
-        bytes32 contributionAttestationUid = prepare(_attesters[attesterIndex], pid, cid, token);
+        bytes32 contributionAttestationUid = prepare(
+            _attesters[attesterIndex],
+            projectAddress,
+            cid,
+            token
+        );
         {
             console2.log("contribution uid:");
             console2.logBytes32(contributionAttestationUid);
@@ -233,11 +238,16 @@ contract ProjectTest is Test {
     }
 
     function testVote() public {
-        uint256 pid = projectIds[0];
+        address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
         uint64 token = 2000;
         uint256 attesterIndex = 0;
-        bytes32 contributionAttestationUid = prepare(_attesters[attesterIndex], pid, cid, token);
+        bytes32 contributionAttestationUid = prepare(
+            _attesters[attesterIndex],
+            projectAddress,
+            cid,
+            token
+        );
 
         uint8[] memory values = new uint8[](1);
         values[0] = 1;
@@ -247,7 +257,7 @@ contract ProjectTest is Test {
             bytes32 voteAttestationUid = vote(
                 contributionAttestationUid,
                 _attesters[attesterIndex],
-                pid,
+                projectAddress,
                 cid,
                 values[i],
                 "good contribution"
@@ -269,11 +279,16 @@ contract ProjectTest is Test {
     }
 
     function testClaim() public {
-        uint256 pid = projectIds[0];
+        address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
         uint64 token = 2000;
         uint256 attesterIndex = 0;
-        bytes32 contributionAttestationUid = prepare(_attesters[attesterIndex], pid, cid, token);
+        bytes32 contributionAttestationUid = prepare(
+            _attesters[attesterIndex],
+            projectAddress,
+            cid,
+            token
+        );
 
         uint8[] memory values = new uint8[](_attesters.length);
         values[0] = 1;
@@ -291,7 +306,7 @@ contract ProjectTest is Test {
             vote(
                 contributionAttestationUid,
                 _attesters[attesterIndex],
-                pid,
+                projectAddress,
                 cid,
                 values[i],
                 "good contribution"
@@ -299,14 +314,13 @@ contract ProjectTest is Test {
         }
         console2.log("---------------------- make claim attest ----------------------");
         bytes32 claimAttestationUid = claim(
-            ClaimParams(pid, cid, _attesters[attesterIndex], token, values)
+            ClaimParams(projectAddress, cid, _attesters[attesterIndex], token, values)
         );
         {
             console2.log("claim uid:");
             console2.logBytes32(claimAttestationUid);
 
-            address project = _registry.getProject(pid);
-            address tokenContract = IProject(project).getToken();
+            address tokenContract = IProject(projectAddress).getToken();
             uint256 amount = IERC20(tokenContract).balanceOf(_attesters[attesterIndex]);
             console2.log("attester token amount: %d", amount);
         }

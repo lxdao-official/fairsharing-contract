@@ -2,8 +2,6 @@
 pragma solidity ^0.8.19;
 
 interface IProjectRegister {
-    function getProject(uint256 pid) external returns (address);
-
     function getSigner() external view returns (address);
 
     function updateSigner(address _signer) external;
@@ -12,5 +10,13 @@ interface IProjectRegister {
         address admin,
         address[] memory members,
         string memory tokenSymbol
-    ) external returns (address, uint256);
+    ) external returns (address);
+
+    function totalProject() external view returns (uint256);
+
+    function ownerLatestProject(
+        address owner,
+        uint256 startIndex,
+        uint256 endIndex
+    ) external view returns (address);
 }

@@ -3,21 +3,10 @@ pragma solidity ^0.8.19;
 
 import "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../IProjectRegister.sol";
 import "../IProject.sol";
 
 contract ContributionResolver is Ownable, SchemaResolver {
-    IProjectRegister public projectRegister;
-
-    error InvalidCaller();
-
-    constructor(IEAS eas, IProjectRegister _projectRegister) SchemaResolver(eas) {
-        projectRegister = _projectRegister;
-    }
-
-    function updateProjectRegister(IProjectRegister _projectRegister) external onlyOwner {
-        projectRegister = _projectRegister;
-    }
+    constructor(IEAS eas) SchemaResolver(eas) {}
 
     function isPayable() public pure override returns (bool) {
         return true;
@@ -27,14 +16,13 @@ contract ContributionResolver is Ownable, SchemaResolver {
         Attestation calldata attestation,
         uint256 /*value*/
     ) internal override returns (bool) {
-        (uint256 pid, , , , , ) = abi.decode(
+        (address projectAddress, , , , , ) = abi.decode(
             attestation.data,
-            (uint256, uint64, string, string, string, uint64)
+            (address, uint64, string, string, string, uint64)
         );
 
-        address project = IProjectRegister(projectRegister).getProject(pid);
-        require(project != address(0), "Contribution project not found.");
-        return IProject(project).onPassMakeContribution(attestation.attester, attestation.data);
+        require(projectAddress != address(0), "Contribution project not found.");
+        return IProject(projectAddress).onPassMakeContribution(attestation);
     }
 
     function onRevoke(
