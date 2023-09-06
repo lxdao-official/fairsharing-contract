@@ -10,6 +10,10 @@ interface IProjectRegister {
 
     function updateProjectTemplate(address _projectTemplate) external;
 
+    function getProjectTokenTemplate() external view returns (address);
+
+    function updateProjectTokenTemplate(address projectTokenTemplate) external;
+
     function create(
         address admin,
         address[] memory members,

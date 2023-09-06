@@ -25,6 +25,9 @@ contract ProjectRegistry is Ownable, IProjectRegister {
     // The project template for clone
     address public projectTemplate;
 
+    // The token template for clone
+    address public projectTokenTemplate;
+
     /**
      * @dev Emitted when signer changed.
      */
@@ -40,6 +43,15 @@ contract ProjectRegistry is Ownable, IProjectRegister {
     );
 
     /**
+     * @dev Emitted when project token template changed.
+     */
+    event ProjectTokenTemplateChanged(
+        address indexed operator,
+        address indexed from,
+        address indexed to
+    );
+
+    /**
      * @dev Emitted when project template changed.
      */
     event ProjectCreated(
@@ -48,9 +60,10 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         uint256 index
     );
 
-    constructor(address _signer, address _projectTemplate) {
+    constructor(address _signer, address _projectTemplate, address _projectTokenTemplate) {
         signer = _signer;
         projectTemplate = _projectTemplate;
+        projectTokenTemplate = _projectTokenTemplate;
     }
 
     function getSigner() public view returns (address) {
@@ -75,6 +88,21 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         }
     }
 
+    function getProjectTokenTemplate() external view returns (address) {
+        return projectTokenTemplate;
+    }
+
+    function updateProjectTokenTemplate(address _projectTokenTemplate) external onlyOwner {
+        if (_projectTokenTemplate != address(0) && _projectTokenTemplate != projectTokenTemplate) {
+            emit ProjectTokenTemplateChanged(
+                _msgSender(),
+                projectTokenTemplate,
+                _projectTokenTemplate
+            );
+            projectTokenTemplate = _projectTokenTemplate;
+        }
+    }
+
     function create(
         address owner,
         address[] memory members,
@@ -82,15 +110,21 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         address voteStrategy
     ) external returns (address projectAddress) {
         uint256 index = projectsCount;
-        bytes32 salt = keccak256(abi.encodePacked(index));
-        projectAddress = ClonesUpgradeable.cloneDeterministic(projectTemplate, salt);
-        IProject(projectAddress).initialize(
-            address(this),
-            owner,
-            members,
-            tokenSymbol,
-            voteStrategy
+        address token = ClonesUpgradeable.cloneDeterministic(
+            projectTokenTemplate,
+            keccak256(abi.encodePacked(index, tokenSymbol))
         );
+
+        projectAddress = ClonesUpgradeable.cloneDeterministic(
+            projectTemplate,
+            keccak256(abi.encodePacked(index))
+        );
+
+        // project initialize
+        IProject(projectAddress).initialize(address(this), owner, members, voteStrategy, token);
+
+        // token initialize
+        IProjectToken(token).initialize("FSToken", tokenSymbol, projectAddress);
 
         emit ProjectCreated(projectAddress, projectTemplate, index);
 
@@ -142,12 +176,14 @@ contract Project is Ownable, AccessControl, IProject {
         address _register,
         address _owner,
         address[] calldata _members,
-        string calldata _tokenSymbol,
-        address _votingStrategy
+        address _votingStrategy,
+        address _token
     ) external {
         register = _register;
 
         votingStrategy = IVotingStrategy(_votingStrategy);
+
+        token = IProjectToken(_token);
 
         address[] memory empty = new address[](0);
         _setMembers(_members, empty);
@@ -156,8 +192,6 @@ contract Project is Ownable, AccessControl, IProject {
 
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
-
-        token = new ProjectToken("FSToken", _tokenSymbol);
     }
 
     function getClaims(uint64 cid) external view returns (address) {

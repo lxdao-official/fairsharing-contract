@@ -5,12 +5,14 @@ import "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 
 interface IProject {
     function initialize(
-        address _register,
-        address _owner,
-        address[] calldata _members,
-        string calldata _tokenSymbol,
-        address _votingStrategy
+        address register,
+        address owner,
+        address[] calldata members,
+        address votingStrategy,
+        address token
     ) external;
+
+    function getClaims(uint64 cid) external view returns (address);
 
     function getOwner() external view returns (address);
 

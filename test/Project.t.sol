@@ -8,8 +8,8 @@ import {VoteResolver} from "../src/resolver/VoteResolver.sol";
 import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "murky/Merkle.sol";
+//import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+//import "murky/Merkle.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
 import "../src/votingStrategy/DefaultVotingStrategy.sol";
@@ -39,6 +39,8 @@ contract ProjectTest is Test {
 
     address votingStrategy;
 
+    address tokenTemplate;
+
     function setUp() public {
         for (uint256 i = 0; i < 10; i++) {
             (address _addr, uint256 privateKey) = makeAddrAndKey(Strings.toString(i));
@@ -55,8 +57,11 @@ contract ProjectTest is Test {
         DefaultVotingStrategy strategy = new DefaultVotingStrategy();
         votingStrategy = address(strategy);
 
+        ProjectToken _token = new ProjectToken();
+        tokenTemplate = address(_token);
+
         (_signer, _signerPrivateKey) = makeAddrAndKey("registry");
-        _registry = new ProjectRegistry(_signer, address(_template));
+        _registry = new ProjectRegistry(_signer, address(_template), address(_token));
 
         registerProject();
         registerSchemas();
@@ -86,6 +91,8 @@ contract ProjectTest is Test {
             projectAddresses.push(projectAddress);
         }
     }
+
+    function testAAAA() public {}
 
     function registerSchemas() private {
         _contributionResolver = new ContributionResolver(_eas);
@@ -338,7 +345,7 @@ contract ProjectTest is Test {
             console2.logBytes32(claimAttestationUid);
 
             address tokenContract = IProject(projectAddress).getToken();
-            uint256 amount = IERC20(tokenContract).balanceOf(_attesters[attesterIndex]);
+            uint256 amount = IERC20Upgradeable(tokenContract).balanceOf(_attesters[attesterIndex]);
             console2.log("attester token amount: %d", amount);
         }
     }
