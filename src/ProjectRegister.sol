@@ -4,12 +4,13 @@ pragma solidity ^0.8.19;
 import "forge-std/console2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 import "./IProjectRegister.sol";
 import "./IProject.sol";
 import "./ProjectToken.sol";
+import "./votingStrategy/IVotingStrategy.sol";
 
 contract ProjectRegistry is Ownable, IProjectRegister {
     // projects indexer
@@ -21,8 +22,35 @@ contract ProjectRegistry is Ownable, IProjectRegister {
     // The signer for project claim.
     address public signer;
 
-    constructor(address _signer) {
+    // The project template for clone
+    address public projectTemplate;
+
+    /**
+     * @dev Emitted when signer changed.
+     */
+    event SignerChanged(address indexed operator, address indexed from, address indexed to);
+
+    /**
+     * @dev Emitted when project template changed.
+     */
+    event ProjectTemplateChanged(
+        address indexed operator,
+        address indexed from,
+        address indexed to
+    );
+
+    /**
+     * @dev Emitted when project template changed.
+     */
+    event ProjectCreated(
+        address indexed projectAddress,
+        address indexed implementation,
+        uint256 index
+    );
+
+    constructor(address _signer, address _projectTemplate) {
         signer = _signer;
+        projectTemplate = _projectTemplate;
     }
 
     function getSigner() public view returns (address) {
@@ -30,21 +58,43 @@ contract ProjectRegistry is Ownable, IProjectRegister {
     }
 
     function updateSigner(address _signer) external onlyOwner {
-        signer = _signer;
+        if (_signer != address(0) && _signer != signer) {
+            emit SignerChanged(_msgSender(), signer, _signer);
+            signer = _signer;
+        }
+    }
+
+    function getProjectTemplate() external view returns (address) {
+        return projectTemplate;
+    }
+
+    function updateProjectTemplate(address _projectTemplate) external onlyOwner {
+        if (_projectTemplate != address(0) && _projectTemplate != projectTemplate) {
+            emit ProjectTemplateChanged(_msgSender(), projectTemplate, _projectTemplate);
+            projectTemplate = _projectTemplate;
+        }
     }
 
     function create(
         address owner,
         address[] memory members,
-        string memory tokenSymbol
+        string memory tokenSymbol,
+        address voteStrategy
     ) external returns (address projectAddress) {
         uint256 index = projectsCount;
         bytes32 salt = keccak256(abi.encodePacked(index));
-        Project _project = new Project{salt: salt}(address(this), owner, members, tokenSymbol);
+        projectAddress = ClonesUpgradeable.cloneDeterministic(projectTemplate, salt);
+        IProject(projectAddress).initialize(
+            address(this),
+            owner,
+            members,
+            tokenSymbol,
+            voteStrategy
+        );
 
-        projectAddress = address(_project);
+        emit ProjectCreated(projectAddress, projectTemplate, index);
+
         projectsIndexer[index] = projectAddress;
-
         projectsCount++;
     }
 
@@ -77,33 +127,37 @@ contract Project is Ownable, AccessControl, IProject {
     using ECDSA for bytes32;
 
     address public register;
+
     mapping(address => bool) public members;
 
     IProjectToken public token;
 
+    IVotingStrategy public votingStrategy;
+
     mapping(uint64 => address) public claims;
 
-    constructor(
+    constructor() {}
+
+    function initialize(
         address _register,
         address _owner,
-        address[] memory _members,
-        string memory tokenSymbol
-    ) {
+        address[] calldata _members,
+        string calldata _tokenSymbol,
+        address _votingStrategy
+    ) external {
         register = _register;
+
+        votingStrategy = IVotingStrategy(_votingStrategy);
 
         address[] memory empty = new address[](0);
         _setMembers(_members, empty);
 
-        initialize(_owner, tokenSymbol);
-    }
-
-    function initialize(address _owner, string memory tokenSymbol) private {
         _transferOwnership(_owner);
 
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
 
-        token = new ProjectToken("FSToken", tokenSymbol);
+        token = new ProjectToken("FSToken", _tokenSymbol);
     }
 
     function getClaims(uint64 cid) external view returns (address) {
@@ -193,7 +247,7 @@ contract Project is Ownable, AccessControl, IProject {
         );
 
         // count votes
-        bool result = countVotesResult(voters, values);
+        bool result = votingStrategy.getResult(voters, values);
         if (result) {
             // mint
             IProjectToken(token).mint(attester, amount);

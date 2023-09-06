@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "murky/Merkle.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
+import "../src/votingStrategy/DefaultVotingStrategy.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
@@ -36,6 +37,8 @@ contract ProjectTest is Test {
     IProjectRegister private _registry;
     address[] projectAddresses;
 
+    address votingStrategy;
+
     function setUp() public {
         for (uint256 i = 0; i < 10; i++) {
             (address _addr, uint256 privateKey) = makeAddrAndKey(Strings.toString(i));
@@ -47,8 +50,13 @@ contract ProjectTest is Test {
 
         _eas = new EAS(ISchemaRegistry(_schemaRegistry));
 
+        Project _template = new Project();
+
+        DefaultVotingStrategy strategy = new DefaultVotingStrategy();
+        votingStrategy = address(strategy);
+
         (_signer, _signerPrivateKey) = makeAddrAndKey("registry");
-        _registry = new ProjectRegistry(_signer);
+        _registry = new ProjectRegistry(_signer, address(_template));
 
         registerProject();
         registerSchemas();
@@ -65,7 +73,12 @@ contract ProjectTest is Test {
 
         for (uint256 i = 100; i < 110; i++) {
             address addr = makeAddr(Strings.toString(i));
-            address projectAddress = _registry.create(addr, _attesters, "FairSharingToken");
+            address projectAddress = _registry.create(
+                addr,
+                _attesters,
+                "FairSharingToken",
+                votingStrategy
+            );
 
             address latestProject = _registry.getOwnerLatestProject(addr, 0, i - 100);
             assert(projectAddress == latestProject);
@@ -297,7 +310,7 @@ contract ProjectTest is Test {
         uint8[] memory values = new uint8[](_attesters.length);
         values[0] = 1;
         values[1] = 1;
-        values[2] = 2;
+        values[2] = 1;
         values[3] = 1;
         values[4] = 2;
         values[5] = 1;
