@@ -2,7 +2,8 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import "../src/ProjectRegister.sol";
+import "../src/project/ProjectRegister.sol";
+import "../src/project/Project.sol";
 import {ContributionResolver} from "../src/resolver/ContributionResolver.sol";
 import {VoteResolver} from "../src/resolver/VoteResolver.sol";
 import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
@@ -13,6 +14,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
 import "../src/votingStrategy/DefaultVotingStrategy.sol";
+import "../src/votingStrategy/IVotingStrategy.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
@@ -78,11 +80,14 @@ contract ProjectTest is Test {
 
         for (uint256 i = 100; i < 110; i++) {
             address addr = makeAddr(Strings.toString(i));
+
+            bytes memory votingStrategyData = abi.encode("");
             address projectAddress = _registry.create(
                 addr,
                 _attesters,
                 "FairSharingToken",
-                votingStrategy
+                votingStrategy,
+                votingStrategyData
             );
 
             address latestProject = _registry.getOwnerLatestProject(addr, 0, i - 100);

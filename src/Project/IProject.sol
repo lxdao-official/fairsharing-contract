@@ -3,14 +3,23 @@ pragma solidity ^0.8.19;
 
 import "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 
+struct VotingStrategy {
+    address addr;
+    bytes data;
+}
+
+struct InitializeParams {
+    address register;
+    address owner;
+    address[] members;
+    VotingStrategy votingStrategy;
+    address token;
+}
+
 interface IProject {
-    function initialize(
-        address register,
-        address owner,
-        address[] calldata members,
-        address votingStrategy,
-        address token
-    ) external;
+    function initialize(InitializeParams calldata param) external;
+
+    function setMembers(address[] memory addList, address[] memory removeList) external;
 
     function getClaims(uint64 cid) external view returns (address);
 

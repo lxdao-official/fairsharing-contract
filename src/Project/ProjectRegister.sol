@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/console2.sol";
+//import "forge-std/console2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 import "./IProjectRegister.sol";
 import "./IProject.sol";
 import "./ProjectToken.sol";
-import "./votingStrategy/IVotingStrategy.sol";
 
 contract ProjectRegistry is Ownable, IProjectRegister {
     // projects indexer
@@ -105,9 +102,10 @@ contract ProjectRegistry is Ownable, IProjectRegister {
 
     function create(
         address owner,
-        address[] memory members,
-        string memory tokenSymbol,
-        address voteStrategy
+        address[] calldata members,
+        string calldata tokenSymbol,
+        address voteStrategy,
+        bytes calldata voteStrategyData
     ) external returns (address projectAddress) {
         uint256 index = projectsCount;
         address token = ClonesUpgradeable.cloneDeterministic(
@@ -120,8 +118,16 @@ contract ProjectRegistry is Ownable, IProjectRegister {
             keccak256(abi.encodePacked(index))
         );
 
+        InitializeParams memory params = InitializeParams({
+            register: address(this),
+            owner: owner,
+            members: members,
+            votingStrategy: VotingStrategy({addr: voteStrategy, data: voteStrategyData}),
+            token: token
+        });
+
         // project initialize
-        IProject(projectAddress).initialize(address(this), owner, members, voteStrategy, token);
+        IProject(projectAddress).initialize(params);
 
         // token initialize
         IProjectToken(token).initialize("FSToken", tokenSymbol, projectAddress);
@@ -154,143 +160,5 @@ contract ProjectRegistry is Ownable, IProjectRegister {
             revert("startIndex or endIndex out of range.");
         }
         return projectAddress;
-    }
-}
-
-contract Project is Ownable, AccessControl, IProject {
-    using ECDSA for bytes32;
-
-    address public register;
-
-    mapping(address => bool) public members;
-
-    IProjectToken public token;
-
-    IVotingStrategy public votingStrategy;
-
-    mapping(uint64 => address) public claims;
-
-    constructor() {}
-
-    function initialize(
-        address _register,
-        address _owner,
-        address[] calldata _members,
-        address _votingStrategy,
-        address _token
-    ) external {
-        register = _register;
-
-        votingStrategy = IVotingStrategy(_votingStrategy);
-
-        token = IProjectToken(_token);
-
-        address[] memory empty = new address[](0);
-        _setMembers(_members, empty);
-
-        _transferOwnership(_owner);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
-    }
-
-    function getClaims(uint64 cid) external view returns (address) {
-        return claims[cid];
-    }
-
-    function getOwner() external view returns (address) {
-        return this.owner();
-    }
-
-    function getToken() external view returns (address) {
-        return address(token);
-    }
-
-    function _setMembers(address[] memory addList, address[] memory removeList) internal {
-        for (uint256 i = 0; i < addList.length; i++) {
-            members[addList[i]] = true;
-        }
-        for (uint256 i = 0; i < removeList.length; i++) {
-            members[removeList[i]] = false;
-        }
-    }
-
-    function setMembers(
-        address[] memory addList,
-        address[] memory removeList
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setMembers(addList, removeList);
-    }
-
-    function version() public pure returns (string memory) {
-        return "1.0.0";
-    }
-
-    function countVotesResult(address[] memory, uint8[] memory values) private pure returns (bool) {
-        // 1:For 2:Against 3:Abstain
-        uint256 forResult = 0;
-        for (uint256 i = 0; i < values.length; i++) {
-            if (values[i] == uint8(1)) {
-                forResult = forResult + 1;
-            }
-        }
-        uint256 percentDelta = (forResult * 1e18) / values.length;
-        uint256 passPercent = 7 * 1e17;
-        return percentDelta >= passPercent;
-    }
-
-    function onPassMakeContribution(Attestation calldata attestation) external view returns (bool) {
-        require(members[attestation.attester] == true, "Make vote verify failed.");
-        return true;
-    }
-
-    function onPassRevokeContribution(
-        Attestation calldata attestation
-    ) external view returns (bool) {
-        require(members[attestation.attester] == true, "Revoke vote verify failed.");
-        return true;
-    }
-
-    function onPassVoteContribution(Attestation calldata attestation) external view returns (bool) {
-        require(members[attestation.attester] == true, "Make vote verify failed.");
-        return true;
-    }
-
-    function onPassClaimContribution(Attestation calldata attestation) external returns (bool) {
-        address attester = attestation.attester;
-        // verify member
-        require(members[attester] == true, "Make vote verify failed.");
-
-        (
-            ,
-            uint64 cid,
-            address[] memory voters,
-            uint8[] memory values,
-            uint64 amount,
-            bytes memory signature
-        ) = abi.decode(attestation.data, (address, uint64, address[], uint8[], uint64, bytes));
-
-        require(claims[cid] == address(0), "This contribution was claimed");
-
-        // verify signature
-        bytes32 hash = keccak256(abi.encode(block.chainid, attester, cid));
-        require(
-            hash.toEthSignedMessageHash().recover(signature) ==
-                IProjectRegister(register).getSigner(),
-            "Make claim verify signature failed"
-        );
-
-        // count votes
-        bool result = votingStrategy.getResult(voters, values);
-        if (result) {
-            // mint
-            IProjectToken(token).mint(attester, amount);
-
-            // store
-            claims[cid] = attester;
-            return true;
-        } else {
-            return false;
-        }
     }
 }

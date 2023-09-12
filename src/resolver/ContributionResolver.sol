@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../IProject.sol";
+import "../project/IProject.sol";
 
 contract ContributionResolver is Ownable, SchemaResolver {
     constructor(IEAS eas) SchemaResolver(eas) {}

@@ -16,9 +16,10 @@ interface IProjectRegister {
 
     function create(
         address admin,
-        address[] memory members,
-        string memory tokenSymbol,
-        address voteStrategy
+        address[] calldata members,
+        string calldata tokenSymbol,
+        address voteStrategy,
+        bytes calldata voteStrategyData
     ) external returns (address);
 
     /**

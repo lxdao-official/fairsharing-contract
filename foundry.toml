@@ -4,7 +4,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 optimizer = true
-optimizer-runs = 10_000_000
+#optimizer-runs = 10_000_000
 
 remappings = [
     "@ethereum-attestation-service/eas-contracts/contracts/=node_modules/@ethereum-attestation-service/eas-contracts/contracts/",
