@@ -15,6 +15,7 @@ import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol
 import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
 import "../src/votingStrategy/DefaultVotingStrategy.sol";
 import "../src/votingStrategy/IVotingStrategy.sol";
+import "../src/votingStrategy/VotingWeightStrategy.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
@@ -41,6 +42,8 @@ contract ProjectTest is Test {
 
     address votingStrategy;
 
+    address votingWeightStrategy;
+
     address tokenTemplate;
 
     function setUp() public {
@@ -58,6 +61,9 @@ contract ProjectTest is Test {
 
         DefaultVotingStrategy strategy = new DefaultVotingStrategy();
         votingStrategy = address(strategy);
+
+        VotingWeightStrategy strategy1 = new VotingWeightStrategy();
+        votingWeightStrategy = address(strategy1);
 
         ProjectToken _token = new ProjectToken();
         tokenTemplate = address(_token);
@@ -78,39 +84,50 @@ contract ProjectTest is Test {
         //            _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
         //        }
 
+        uint256[] memory weights = new uint256[](_attesters.length);
+        weights[0] = 0;
+        weights[1] = 0;
+        weights[2] = 10;
+        weights[3] = 10;
+        weights[4] = 30;
+        weights[5] = 10;
+        weights[6] = 10;
+        weights[7] = 20;
+        weights[8] = 10;
+        weights[9] = 0;
+
         for (uint256 i = 100; i < 110; i++) {
             address addr = makeAddr(Strings.toString(i));
 
-            bytes memory votingStrategyData = abi.encode("");
+            bytes memory emptyData = abi.encode("");
+            bytes memory votingStrategyData = abi.encode(_attesters, weights);
             address projectAddress = _registry.create(
                 addr,
                 _attesters,
                 "FairSharingToken",
-                votingStrategy,
-                votingStrategyData
+                i % 2 == 1 ? votingStrategy : votingWeightStrategy,
+                i % 2 == 1 ? emptyData : votingStrategyData,
+                60
             );
 
             address latestProject = _registry.getOwnerLatestProject(addr, 0, i - 100);
             assert(projectAddress == latestProject);
-
             projectAddresses.push(projectAddress);
         }
     }
-
-    function testAAAA() public {}
 
     function registerSchemas() private {
         _contributionResolver = new ContributionResolver(_eas);
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
 
-        _contributionSchemaTemplate = "address projectAddress, uint64 cid, string title, string detail, string poc, uint64 token";
+        _contributionSchemaTemplate = "address projectAddress, uint64 cid, string title, string detail, string poc, uint256 token";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
         _voteSchemaTemplate = "address projectAddress, uint64 cid, uint8 value, string reason";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
-        _claimSchemaTemplate = "address projectAddress, uint64 cid, address[] voters, uint8[] values, uint64 token, bytes signature";
+        _claimSchemaTemplate = "address projectAddress, uint64 cid, address[] voters, uint8[] values, uint256 token, bytes signature";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
     }
 
@@ -118,7 +135,7 @@ contract ProjectTest is Test {
         address attester,
         address projectAddress,
         uint64 cid,
-        uint64 token
+        uint256 token
     ) private returns (bytes32 contributionAttestationUid) {
         vm.startPrank(attester);
         contributionAttestationUid = _eas.attest(
@@ -199,7 +216,7 @@ contract ProjectTest is Test {
         address projectAddress;
         uint64 cid;
         address attester;
-        uint64 token;
+        uint256 token;
         uint8[] values;
     }
 
@@ -240,7 +257,7 @@ contract ProjectTest is Test {
     function testPrepareContribution() public {
         address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
-        uint64 token = 2000;
+        uint256 token = 2000;
         uint256 attesterIndex = 0;
 
         console2.log("---------------------- make contribution attest ----------------------");
@@ -269,7 +286,7 @@ contract ProjectTest is Test {
     function testVote() public {
         address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
-        uint64 token = 2000;
+        uint256 token = 2000;
         uint256 attesterIndex = 0;
         bytes32 contributionAttestationUid = prepare(
             _attesters[attesterIndex],
@@ -310,7 +327,7 @@ contract ProjectTest is Test {
     function testClaim() public {
         address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
-        uint64 token = 2000;
+        uint256 token = 2000;
         uint256 attesterIndex = 0;
         bytes32 contributionAttestationUid = prepare(
             _attesters[attesterIndex],

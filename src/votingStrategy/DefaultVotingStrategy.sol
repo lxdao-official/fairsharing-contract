@@ -2,11 +2,17 @@
 pragma solidity ^0.8.19;
 
 import "./IVotingStrategy.sol";
+import "forge-std/console2.sol";
 
 contract DefaultVotingStrategy is IVotingStrategy {
     constructor() {}
 
-    function getResult(address[] calldata, uint8[] calldata values) external pure returns (bool) {
+    function getResult(
+        address[] calldata,
+        uint8[] calldata values,
+        bytes calldata,
+        uint256 passingRate
+    ) external pure returns (bool) {
         // 1:For 2:Against 3:Abstain
         uint256 forResult = 0;
         for (uint256 i = 0; i < values.length; i++) {
@@ -14,8 +20,7 @@ contract DefaultVotingStrategy is IVotingStrategy {
                 forResult = forResult + 1;
             }
         }
-        uint256 percentDelta = (forResult * 1e18) / values.length;
-        uint256 passPercent = 7 * 1e17;
-        return percentDelta >= passPercent;
+        uint256 percentDelta = (forResult * 100) / values.length;
+        return percentDelta >= passingRate;
     }
 }

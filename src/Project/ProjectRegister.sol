@@ -105,7 +105,8 @@ contract ProjectRegistry is Ownable, IProjectRegister {
         address[] calldata members,
         string calldata tokenSymbol,
         address voteStrategy,
-        bytes calldata voteStrategyData
+        bytes calldata voteStrategyData,
+        uint256 votePassingRate
     ) external returns (address projectAddress) {
         uint256 index = projectsCount;
         address token = ClonesUpgradeable.cloneDeterministic(
@@ -122,7 +123,11 @@ contract ProjectRegistry is Ownable, IProjectRegister {
             register: address(this),
             owner: owner,
             members: members,
-            votingStrategy: VotingStrategy({addr: voteStrategy, data: voteStrategyData}),
+            votingStrategy: VotingStrategy({
+                addr: voteStrategy,
+                data: voteStrategyData,
+                passingRate: votePassingRate
+            }),
             token: token
         });
 

@@ -19,7 +19,8 @@ interface IProjectRegister {
         address[] calldata members,
         string calldata tokenSymbol,
         address voteStrategy,
-        bytes calldata voteStrategyData
+        bytes calldata voteStrategyData,
+        uint256 votePassingRate
     ) external returns (address);
 
     /**

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-//import "forge-std/console2.sol";
+import "forge-std/console2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -14,13 +14,12 @@ contract Project is Ownable, AccessControl, IProject {
     /**
      * @dev Emitted when voting strategy changed.
      */
-    event VotingStrategyChanged(
-        address indexed operator,
-        address indexed from,
-        address indexed to,
-        bytes dataFrom,
-        bytes dataTo
-    );
+    event VotingStrategyChanged(address indexed operator, address indexed from, address indexed to);
+
+    /**
+     * @dev Emitted when voting strategy data changed.
+     */
+    event VotingStrategyDataChanged(address indexed operator, bytes dataFrom, bytes dataTo);
 
     using ECDSA for bytes32;
 
@@ -79,42 +78,22 @@ contract Project is Ownable, AccessControl, IProject {
         _setMembers(addList, removeList);
     }
 
-    function updateVotingStrategy(
-        address _votingStrategy,
-        bytes calldata data
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        emit VotingStrategyChanged(
-            _msgSender(),
-            votingStrategy.addr,
-            _votingStrategy,
-            votingStrategy.data,
-            data
-        );
-
+    function updateVotingStrategy(address _votingStrategy) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_votingStrategy != address(0) && _votingStrategy != votingStrategy.addr) {
+            emit VotingStrategyChanged(_msgSender(), votingStrategy.addr, _votingStrategy);
             votingStrategy.addr = _votingStrategy;
         }
+    }
 
+    function updateVotingStrategyData(bytes calldata data) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (keccak256(abi.encodePacked(data)) != keccak256(abi.encodePacked(votingStrategy.data))) {
+            emit VotingStrategyDataChanged(_msgSender(), votingStrategy.data, data);
             votingStrategy.data = data;
         }
     }
 
     function version() public pure returns (string memory) {
         return "1.0.0";
-    }
-
-    function countVotesResult(address[] memory, uint8[] memory values) private pure returns (bool) {
-        // 1:For 2:Against 3:Abstain
-        uint256 forResult = 0;
-        for (uint256 i = 0; i < values.length; i++) {
-            if (values[i] == uint8(1)) {
-                forResult = forResult + 1;
-            }
-        }
-        uint256 percentDelta = (forResult * 1e18) / values.length;
-        uint256 passPercent = 7 * 1e17;
-        return percentDelta >= passPercent;
     }
 
     function onPassMakeContribution(Attestation calldata attestation) external view returns (bool) {
@@ -159,7 +138,12 @@ contract Project is Ownable, AccessControl, IProject {
         );
 
         // count votes
-        bool result = IVotingStrategy(votingStrategy.addr).getResult(voters, values);
+        bool result = IVotingStrategy(votingStrategy.addr).getResult(
+            voters,
+            values,
+            votingStrategy.data,
+            votingStrategy.passingRate
+        );
         if (result) {
             // mint
             IProjectToken(token).mint(attester, amount);

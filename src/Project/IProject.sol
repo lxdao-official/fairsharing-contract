@@ -6,6 +6,7 @@ import "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 struct VotingStrategy {
     address addr;
     bytes data;
+    uint256 passingRate;
 }
 
 struct InitializeParams {
@@ -20,6 +21,10 @@ interface IProject {
     function initialize(InitializeParams calldata param) external;
 
     function setMembers(address[] memory addList, address[] memory removeList) external;
+
+    function updateVotingStrategy(address _votingStrategy) external;
+
+    function updateVotingStrategyData(bytes calldata data) external;
 
     function getClaims(uint64 cid) external view returns (address);
 
