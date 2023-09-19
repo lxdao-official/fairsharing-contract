@@ -69,40 +69,16 @@ contract ProjectTest is Test {
         ProjectToken _token = new ProjectToken();
         tokenTemplate = address(_token);
 
+        address _owner = makeAddr("registryOwner");
         (_signer, _signerPrivateKey) = makeAddrAndKey("registry");
         _registry = new ProjectRegistry();
-        _registry.initialize(_signer, address(_template), address(_token));
+        _registry.initialize(_owner, _signer, address(_template), address(_token));
 
         registerProject();
         registerSchemas();
     }
 
-    function testUpgrade() private {
-        ProjectToken _token = new ProjectToken();
-
-        Project _template = new Project();
-
-        ProjectRegistry registry = new ProjectRegistry();
-        registry.initialize(_signer, address(_template), address(_token));
-
-        address owner = makeAddr("project register admin");
-
-        ProjectRegisterUpgradeableProxy proxy = new ProjectRegisterUpgradeableProxy(
-            address(registry),
-            owner,
-            abi.encode("")
-        );
-    }
-
     function registerProject() private {
-        //        // Initialize
-        //        _merkleTree = new Merkle();
-        //        // Toy Data
-        //        _proofData = new bytes32[](_attesters.length);
-        //        for (uint256 i = 0; i < _attesters.length; i++) {
-        //            _proofData[i] = keccak256(abi.encodePacked(_attesters[i]));
-        //        }
-
         uint256[] memory weights = new uint256[](_attesters.length);
         weights[0] = 0;
         weights[1] = 0;
