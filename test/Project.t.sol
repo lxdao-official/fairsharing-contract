@@ -16,6 +16,7 @@ import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
 import "../src/votingStrategy/DefaultVotingStrategy.sol";
 import "../src/votingStrategy/IVotingStrategy.sol";
 import "../src/votingStrategy/VotingWeightStrategy.sol";
+import "../src/upgrade/ProjectRegisterUpgradeableProxy.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
@@ -69,10 +70,28 @@ contract ProjectTest is Test {
         tokenTemplate = address(_token);
 
         (_signer, _signerPrivateKey) = makeAddrAndKey("registry");
-        _registry = new ProjectRegistry(_signer, address(_template), address(_token));
+        _registry = new ProjectRegistry();
+        _registry.initialize(_signer, address(_template), address(_token));
 
         registerProject();
         registerSchemas();
+    }
+
+    function testUpgrade() private {
+        ProjectToken _token = new ProjectToken();
+
+        Project _template = new Project();
+
+        ProjectRegistry registry = new ProjectRegistry();
+        registry.initialize(_signer, address(_template), address(_token));
+
+        address owner = makeAddr("project register admin");
+
+        ProjectRegisterUpgradeableProxy proxy = new ProjectRegisterUpgradeableProxy(
+            address(registry),
+            owner,
+            abi.encode("")
+        );
     }
 
     function registerProject() private {

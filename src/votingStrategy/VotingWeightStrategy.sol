@@ -2,7 +2,6 @@
 pragma solidity ^0.8.19;
 
 import "./IVotingStrategy.sol";
-import "forge-std/console2.sol";
 
 struct VotingWeight {
     mapping(address => uint256) weights;

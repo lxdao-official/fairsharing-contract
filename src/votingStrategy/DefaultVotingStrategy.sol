@@ -2,7 +2,6 @@
 pragma solidity ^0.8.19;
 
 import "./IVotingStrategy.sol";
-import "forge-std/console2.sol";
 
 contract DefaultVotingStrategy is IVotingStrategy {
     constructor() {}

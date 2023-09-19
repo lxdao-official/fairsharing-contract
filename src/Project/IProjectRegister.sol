@@ -2,6 +2,13 @@
 pragma solidity ^0.8.19;
 
 interface IProjectRegister {
+    function initialize(
+        address _owner,
+        address _signer,
+        address _projectTemplate,
+        address _projectTokenTemplate
+    ) external;
+
     function getSigner() external view returns (address);
 
     function updateSigner(address _signer) external;

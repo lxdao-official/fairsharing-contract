@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "./IProjectRegister.sol";
-import "./IProject.sol";
-import "./ProjectToken.sol";
+import "../project/IProjectRegister.sol";
+import "../project/IProject.sol";
+import "../project/ProjectToken.sol";
+import "../project/IProjectRegister.sol";
 
-contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
+contract ProjectRegistryV2 is OwnableUpgradeable, IProjectRegister {
     // projects indexer
     mapping(uint256 => address) public projectsIndexer;
 
@@ -183,6 +184,6 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
     }
 
     function version() public pure virtual returns (string memory) {
-        return "1.0.0";
+        return "1.0.1";
     }
 }
