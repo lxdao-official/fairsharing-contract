@@ -30,10 +30,12 @@ contract Project is Ownable, AccessControl, IProject {
 
     VotingStrategy public votingStrategy;
 
-    mapping(uint64 => address) public claims;
+    // cid => owner
+    mapping(uint64 => address) private claims;
 
-    constructor() {}
-
+    /**
+     * @dev Constructors are replaced by initialize function
+     */
     function initialize(InitializeParams calldata param) external {
         register = param.register;
 
@@ -49,14 +51,23 @@ contract Project is Ownable, AccessControl, IProject {
         _grantRole(DEFAULT_ADMIN_ROLE, param.owner);
     }
 
+    /**
+     * @dev Get claims
+     */
     function getClaims(uint64 cid) external view returns (address) {
         return claims[cid];
     }
 
+    /**
+     * @dev Get project owner
+     */
     function getOwner() external view returns (address) {
         return this.owner();
     }
 
+    /**
+     * @dev Get project token address
+     */
     function getToken() external view returns (address) {
         return address(token);
     }
@@ -70,6 +81,9 @@ contract Project is Ownable, AccessControl, IProject {
         }
     }
 
+    /**
+     * @dev Update project members
+     */
     function setMembers(
         address[] memory addList,
         address[] memory removeList
@@ -77,6 +91,9 @@ contract Project is Ownable, AccessControl, IProject {
         _setMembers(addList, removeList);
     }
 
+    /**
+     * @dev Update project voting strategy
+     */
     function updateVotingStrategy(address _votingStrategy) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_votingStrategy != address(0) && _votingStrategy != votingStrategy.addr) {
             emit VotingStrategyChanged(_msgSender(), votingStrategy.addr, _votingStrategy);
@@ -84,6 +101,9 @@ contract Project is Ownable, AccessControl, IProject {
         }
     }
 
+    /**
+     * @dev Update project voting strategy data
+     */
     function updateVotingStrategyData(bytes calldata data) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (keccak256(abi.encodePacked(data)) != keccak256(abi.encodePacked(votingStrategy.data))) {
             emit VotingStrategyDataChanged(_msgSender(), votingStrategy.data, data);
@@ -91,15 +111,24 @@ contract Project is Ownable, AccessControl, IProject {
         }
     }
 
+    /**
+     * @dev Version of the ProjectRegistry contract. Default: "1.0.0"
+     */
     function version() public pure returns (string memory) {
         return "1.0.0";
     }
 
+    /**
+     * @dev Delegate - Verify attesting for contribute resolver
+     */
     function onPassMakeContribution(Attestation calldata attestation) external view returns (bool) {
         require(members[attestation.attester] == true, "Make vote verify failed.");
         return true;
     }
 
+    /**
+     * @dev Delegate - Verify revoke for contribution resolver
+     */
     function onPassRevokeContribution(
         Attestation calldata attestation
     ) external view returns (bool) {
@@ -107,11 +136,17 @@ contract Project is Ownable, AccessControl, IProject {
         return true;
     }
 
+    /**
+     * @dev Delegate - Verify attesting for voting resolver
+     */
     function onPassVoteContribution(Attestation calldata attestation) external view returns (bool) {
         require(members[attestation.attester] == true, "Make vote verify failed.");
         return true;
     }
 
+    /**
+     * @dev Delegate - Verify attesting for claim resolver
+     */
     function onPassClaimContribution(Attestation calldata attestation) external returns (bool) {
         address attester = attestation.attester;
         // verify member

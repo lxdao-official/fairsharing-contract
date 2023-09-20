@@ -18,13 +18,13 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
     uint256 public projectsCount;
 
     // The signer for project claim.
-    address public signer;
+    address private signer;
 
     // The project template for clone
-    address public projectTemplate;
+    address private projectTemplate;
 
     // The token template for clone
-    address public projectTokenTemplate;
+    address private projectTokenTemplate;
 
     /**
      * @dev Emitted when signer changed.
@@ -58,6 +58,9 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         uint256 index
     );
 
+    /**
+     * @dev Constructors are replaced by initialize function
+     */
     function initialize(
         address _owner,
         address _signer,
@@ -78,10 +81,16 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         projectTokenTemplate = _projectTokenTemplate;
     }
 
+    /**
+     * @dev Get signer
+     */
     function getSigner() public view returns (address) {
         return signer;
     }
 
+    /**
+     * @dev Update signer, only owner.
+     */
     function updateSigner(address _signer) external onlyOwner {
         if (_signer != address(0) && _signer != signer) {
             emit SignerChanged(_msgSender(), signer, _signer);
@@ -89,10 +98,16 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         }
     }
 
+    /**
+     * @dev Get project template
+     */
     function getProjectTemplate() external view returns (address) {
         return projectTemplate;
     }
 
+    /**
+     * @dev Update project template, only owner.
+     */
     function updateProjectTemplate(address _projectTemplate) external onlyOwner {
         if (_projectTemplate != address(0) && _projectTemplate != projectTemplate) {
             emit ProjectTemplateChanged(_msgSender(), projectTemplate, _projectTemplate);
@@ -100,10 +115,16 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         }
     }
 
+    /**
+     * @dev Get project token template
+     */
     function getProjectTokenTemplate() external view returns (address) {
         return projectTokenTemplate;
     }
 
+    /**
+     * @dev Update project token template, only owner.
+     */
     function updateProjectTokenTemplate(address _projectTokenTemplate) external onlyOwner {
         if (_projectTokenTemplate != address(0) && _projectTokenTemplate != projectTokenTemplate) {
             emit ProjectTokenTemplateChanged(
@@ -115,6 +136,12 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         }
     }
 
+    /**
+     * @dev Create project by anyone
+     *
+     * Voting strategy default is DefaultVotingStrategy
+     *
+     */
     function create(
         address owner,
         address[] calldata members,
@@ -150,7 +177,7 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         IProject(projectAddress).initialize(params);
 
         // token initialize
-        IProjectToken(token).initialize("FSToken", tokenSymbol, projectAddress);
+        IProjectToken(token).initialize(tokenSymbol, tokenSymbol, projectAddress);
 
         emit ProjectCreated(projectAddress, projectTemplate, index);
 
@@ -158,6 +185,9 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         projectsCount++;
     }
 
+    /**
+     * @dev Use to get the owner's latest project in off-chain
+     */
     function getOwnerLatestProject(
         address owner,
         uint256 startIndex,
@@ -182,6 +212,9 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         return projectAddress;
     }
 
+    /**
+     * @dev Version of the ProjectRegistry contract. Default: "1.0.0"
+     */
     function version() public pure virtual returns (string memory) {
         return "1.0.0";
     }
