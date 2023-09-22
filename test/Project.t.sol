@@ -221,7 +221,9 @@ contract ProjectTest is Test {
     }
 
     function claim(ClaimParams memory params) private returns (bytes32 claimAttestationUid) {
-        bytes32 hash = keccak256(abi.encode(block.chainid, params.attester, params.cid));
+        bytes32 hash = keccak256(
+            abi.encode(block.chainid, params.attester, params.receiver, params.cid)
+        );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _signerPrivateKey,
             ECDSA.toEthSignedMessageHash(hash)

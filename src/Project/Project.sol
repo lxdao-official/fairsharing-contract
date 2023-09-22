@@ -168,7 +168,7 @@ contract Project is Ownable, AccessControl, IProject {
         require(claims[cid] == address(0), "This contribution was claimed");
 
         // verify signature
-        bytes32 hash = keccak256(abi.encode(block.chainid, attester, cid));
+        bytes32 hash = keccak256(abi.encode(block.chainid, attester, receiver, cid));
         require(
             hash.toEthSignedMessageHash().recover(signature) ==
                 IProjectRegister(register).getSigner(),
