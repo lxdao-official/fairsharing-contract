@@ -18,7 +18,7 @@ contract ContributionResolver is Ownable, SchemaResolver {
     ) internal override returns (bool) {
         (address projectAddress, , , , , ) = abi.decode(
             attestation.data,
-            (address, uint64, string, string, string, uint64)
+            (address, uint64, string, string, string, uint256)
         );
 
         require(projectAddress != address(0), "Contribution project not found.");
