@@ -2,6 +2,11 @@
 ## Deployed Contract
 
 #### Optimism-Goerli
+* **Contribution Schema**: [0xa7dca651e011d44363742bddfde1f72c5cec536858589b89778efc5bcdff868b](https://optimism-goerli-bedrock.easscan.org/schema/view/0xa7dca651e011d44363742bddfde1f72c5cec536858589b89778efc5bcdff868b)
+* **Vote Schema**: [0x1654a49365e83e920d7444dc48423cf16be33f9f902dca8500d00766cb9b8fd2](https://optimism-goerli-bedrock.easscan.org/schema/view/0x1654a49365e83e920d7444dc48423cf16be33f9f902dca8500d00766cb9b8fd2)
+* **Claim Schema**: [0x7cc6a5995560f61cf4f77c00facfc83f93ec3ca95aad9a57e80504efb92a438a](https://optimism-goerli-bedrock.easscan.org/schema/view/0x7cc6a5995560f61cf4f77c00facfc83f93ec3ca95aad9a57e80504efb92a438a)
+
+
 * **ContributionResolver**: [0xE055bb5F0C9FeF251573aE5d3B853a94510262ed](https://goerli-optimism.etherscan.io/address/0xe055bb5f0c9fef251573ae5d3b853a94510262ed)
 * **VoteResolver**: [0x8415320201C7E71cb54ee4B30e0b1549Dc676958](https://goerli-optimism.etherscan.io/address/0x8415320201C7E71cb54ee4B30e0b1549Dc676958)
 * **ClaimResolver**: [0x2061cffe8de147D133D0FeD011De2724a36cF6CF](https://goerli-optimism.etherscan.io/address/0x2061cffe8de147D133D0FeD011De2724a36cF6CF)
