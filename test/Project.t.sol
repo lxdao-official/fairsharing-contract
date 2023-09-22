@@ -328,7 +328,7 @@ contract ProjectTest is Test {
     function testClaim() public {
         address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
-        uint256 token = 2000;
+        uint256 token = 1 ether;
         uint256 attesterIndex = 0;
         bytes32 contributionAttestationUid = prepare(
             _attesters[attesterIndex],
@@ -370,7 +370,7 @@ contract ProjectTest is Test {
             console2.logBytes32(claimAttestationUid);
 
             address tokenContract = IProject(projectAddress).getToken();
-            uint256 amount = IERC20Upgradeable(tokenContract).balanceOf(_attesters[attesterIndex]);
+            uint256 amount = IERC20Upgradeable(tokenContract).balanceOf(receiver);
             console2.log("attester token amount: %d", amount);
         }
     }
