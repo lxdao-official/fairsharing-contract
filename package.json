@@ -1,0 +1,48 @@
+{
+  "name": "fairsharing-contract",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "git@github.com:lxdao-official/fairsharing-contract.git",
+  "author": "Kahn <ylkk925@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "forge test",
+    "prettier": "prettier --write '{**/*,*}.{js,ts,tsx,md,mdx,yml,sol}'",
+    "format": "prettier -c '{**/*,*}.{js,ts,tsx,md,mdx,yml,sol}'",
+    "lint": "solhint -w 0 'contracts/**/*.sol'"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "4.9.3",
+    "@openzeppelin/contracts-upgradeable": "4.9.3"
+  },
+  "devDependencies": {
+    "@ethereum-attestation-service/eas-sdk": "^1.1.0-beta.3",
+    "@ethersproject/abi": "^5.7.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-ethers": "^3.0.4",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.9",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@nomicfoundation/hardhat-verify": "^1.1.1",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "@openzeppelin/hardhat-upgrades": "^2.2.1",
+    "@typechain/ethers-v5": "^11.1.1",
+    "@typechain/hardhat": "^6.1.6",
+    "@types/chai": "^4.3.6",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": ">=12.0.0",
+    "chai": "^4.3.8",
+    "ethers": "^6.7.1",
+    "hardhat": "^2.17.3",
+    "hardhat-gas-reporter": "^1.0.9",
+    "prettier": "^2.6.2",
+    "prettier-plugin-solidity": "^1.1.3",
+    "solhint": "^3.3.7",
+    "solidity-coverage": "^0.8.4",
+    "ts-node": ">=8.0.0",
+    "typechain": "^8.3.1",
+    "typescript": ">=4.5.0",
+    "@nomicfoundation/hardhat-foundry": "^1.1.1"
+  }
+}
