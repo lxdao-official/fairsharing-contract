@@ -123,10 +123,10 @@ contract ProjectTest is Test {
         _contributionSchemaTemplate = "address ProjectAddress, uint64 ContributionID, string Detail, string Type, string Proof, uint256 Token";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
-        _voteSchemaTemplate = "address ProjectAddress, uint64 ContributionID, uint8 Value, string Reason";
+        _voteSchemaTemplate = "address ProjectAddress, uint64 ContributionID, uint8 VoteChoice, string Comment";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
-        _claimSchemaTemplate = "address ProjectAddress, uint64 ContributionID, address[] Voters, uint8[] Values, address Receiver, uint256 Token, bytes Signature";
+        _claimSchemaTemplate = "address ProjectAddress, uint64 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 Token, bytes Signatures";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
     }
 
@@ -181,7 +181,7 @@ contract ProjectTest is Test {
         address projectAddress,
         uint64 cid,
         uint8 value,
-        string memory reason
+        string memory comment
     ) private returns (bytes32 voteAttestationUid) {
         vm.startPrank(attester);
         voteAttestationUid = _eas.attest(
@@ -192,7 +192,7 @@ contract ProjectTest is Test {
                     expirationTime: 0,
                     revocable: true,
                     refUID: contributionAttestationUid,
-                    data: abi.encode(projectAddress, cid, value, reason),
+                    data: abi.encode(projectAddress, cid, value, comment),
                     value: 0
                 })
             })
