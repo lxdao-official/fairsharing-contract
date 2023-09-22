@@ -157,9 +157,13 @@ contract Project is Ownable, AccessControl, IProject {
             uint64 cid,
             address[] memory voters,
             uint8[] memory values,
-            uint64 amount,
+            address receiver,
+            uint256 amount,
             bytes memory signature
-        ) = abi.decode(attestation.data, (address, uint64, address[], uint8[], uint64, bytes));
+        ) = abi.decode(
+                attestation.data,
+                (address, uint64, address[], uint8[], address, uint256, bytes)
+            );
 
         require(claims[cid] == address(0), "This contribution was claimed");
 
@@ -180,7 +184,7 @@ contract Project is Ownable, AccessControl, IProject {
         );
         if (result) {
             // mint
-            IProjectToken(token).mint(attester, amount);
+            IProjectToken(token).mint(receiver, amount);
 
             // store
             claims[cid] = attester;

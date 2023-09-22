@@ -142,18 +142,11 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
      * Voting strategy default is DefaultVotingStrategy
      *
      */
-    function create(
-        address owner,
-        address[] calldata members,
-        string calldata tokenSymbol,
-        address voteStrategy,
-        bytes calldata voteStrategyData,
-        uint256 votePassingRate
-    ) external returns (address projectAddress) {
+    function create(CreateParams calldata params) external returns (address projectAddress) {
         uint256 index = projectsCount;
         address token = ClonesUpgradeable.cloneDeterministic(
             projectTokenTemplate,
-            keccak256(abi.encodePacked(index, tokenSymbol))
+            keccak256(abi.encodePacked(index, params.tokenSymbol))
         );
 
         projectAddress = ClonesUpgradeable.cloneDeterministic(
@@ -161,23 +154,23 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
             keccak256(abi.encodePacked(index))
         );
 
-        InitializeParams memory params = InitializeParams({
+        InitializeParams memory initParams = InitializeParams({
             register: address(this),
-            owner: owner,
-            members: members,
+            owner: params.admin,
+            members: params.members,
             votingStrategy: VotingStrategy({
-                addr: voteStrategy,
-                data: voteStrategyData,
-                passingRate: votePassingRate
+                addr: params.voteStrategy,
+                data: params.voteStrategyData,
+                passingRate: params.votePassingRate
             }),
             token: token
         });
 
         // project initialize
-        IProject(projectAddress).initialize(params);
+        IProject(projectAddress).initialize(initParams);
 
         // token initialize
-        IProjectToken(token).initialize(tokenSymbol, tokenSymbol, projectAddress);
+        IProjectToken(token).initialize(params.tokenName, params.tokenSymbol, projectAddress);
 
         emit ProjectCreated(projectAddress, projectTemplate, index);
 

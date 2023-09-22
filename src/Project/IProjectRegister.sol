@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+struct CreateParams {
+    address admin;
+    address[] members;
+    string tokenName;
+    string tokenSymbol;
+    address voteStrategy;
+    bytes voteStrategyData;
+    uint256 votePassingRate;
+}
+
 interface IProjectRegister {
     function initialize(
         address _owner,
@@ -21,14 +31,7 @@ interface IProjectRegister {
 
     function updateProjectTokenTemplate(address projectTokenTemplate) external;
 
-    function create(
-        address admin,
-        address[] calldata members,
-        string calldata tokenSymbol,
-        address voteStrategy,
-        bytes calldata voteStrategyData,
-        uint256 votePassingRate
-    ) external returns (address);
+    function create(CreateParams calldata params) external returns (address);
 
     /**
      * @notice Invoked by off-chain, get owner's latest created project.

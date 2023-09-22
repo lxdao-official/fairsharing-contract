@@ -96,14 +96,18 @@ contract ProjectTest is Test {
 
             bytes memory emptyData = abi.encode("");
             bytes memory votingStrategyData = abi.encode(_attesters, weights);
-            address projectAddress = _registry.create(
-                addr,
-                _attesters,
-                "FairSharingToken",
-                i % 2 == 1 ? votingStrategy : votingWeightStrategy,
-                i % 2 == 1 ? emptyData : votingStrategyData,
-                60
-            );
+
+            CreateParams memory params = CreateParams({
+                admin: addr,
+                members: _attesters,
+                tokenName: "ProjectName",
+                tokenSymbol: "FairSharingToken",
+                voteStrategy: i % 2 == 1 ? votingStrategy : votingWeightStrategy,
+                voteStrategyData: i % 2 == 1 ? emptyData : votingStrategyData,
+                votePassingRate: 60
+            });
+
+            address projectAddress = _registry.create(params);
 
             address latestProject = _registry.getOwnerLatestProject(addr, 0, i - 100);
             assert(projectAddress == latestProject);
@@ -116,13 +120,13 @@ contract ProjectTest is Test {
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
 
-        _contributionSchemaTemplate = "address projectAddress, uint64 cid, string title, string detail, string poc, uint256 token";
+        _contributionSchemaTemplate = "address ProjectAddress, uint64 ContributionID, string Detail, string Type, string Proof, uint256 Token";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
-        _voteSchemaTemplate = "address projectAddress, uint64 cid, uint8 value, string reason";
+        _voteSchemaTemplate = "address ProjectAddress, uint64 ContributionID, uint8 Value, string Reason";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
-        _claimSchemaTemplate = "address projectAddress, uint64 cid, address[] voters, uint8[] values, uint256 token, bytes signature";
+        _claimSchemaTemplate = "address ProjectAddress, uint64 ContributionID, address[] Voters, uint8[] Values, address Receiver, uint256 Token, bytes Signature";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
     }
 
@@ -146,8 +150,8 @@ contract ProjectTest is Test {
                     data: abi.encode(
                         projectAddress,
                         cid,
-                        "first contribution title",
-                        "first contribution detail",
+                        "contribution detail",
+                        "contribution type",
                         "the poc",
                         token
                     ),
@@ -211,6 +215,7 @@ contract ProjectTest is Test {
         address projectAddress;
         uint64 cid;
         address attester;
+        address receiver;
         uint256 token;
         uint8[] values;
     }
@@ -228,6 +233,7 @@ contract ProjectTest is Test {
             params.cid,
             _attesters,
             params.values,
+            params.receiver,
             params.token,
             signature
         );
@@ -354,8 +360,10 @@ contract ProjectTest is Test {
             );
         }
         console2.log("---------------------- make claim attest ----------------------");
+        address receiver = makeAddr("token receiver");
+
         bytes32 claimAttestationUid = claim(
-            ClaimParams(projectAddress, cid, _attesters[attesterIndex], token, values)
+            ClaimParams(projectAddress, cid, _attesters[attesterIndex], receiver, token, values)
         );
         {
             console2.log("claim uid:");
