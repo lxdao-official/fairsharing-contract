@@ -9,7 +9,7 @@ import "./ProjectToken.sol";
 import "./IProjectRegister.sol";
 import "../votingStrategy/IVotingStrategy.sol";
 
-contract Project is Ownable, AccessControl, IProject {
+contract Project is AccessControl, IProject {
     /**
      * @dev Emitted when voting strategy changed.
      */
@@ -24,8 +24,6 @@ contract Project is Ownable, AccessControl, IProject {
 
     address public register;
 
-    mapping(address => bool) public members;
-
     IProjectToken public token;
 
     VotingStrategy public votingStrategy;
@@ -33,10 +31,16 @@ contract Project is Ownable, AccessControl, IProject {
     // cid => owner
     mapping(uint64 => address) private claims;
 
+    address public creator;
+
+    bytes32 public constant MEMBER_ROLE = keccak256("MEMBER");
+
     /**
      * @dev Constructors are replaced by initialize function
      */
     function initialize(InitializeParams calldata param) external {
+        creator = param.creator;
+
         register = param.register;
 
         votingStrategy = param.votingStrategy;
@@ -44,11 +48,7 @@ contract Project is Ownable, AccessControl, IProject {
         token = IProjectToken(param.token);
 
         address[] memory empty = new address[](0);
-        _setMembers(param.members, empty);
-
-        _transferOwnership(param.owner);
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _grantRole(DEFAULT_ADMIN_ROLE, param.owner);
+        _setMembers(param.members, empty, param.members, empty);
     }
 
     /**
@@ -62,7 +62,7 @@ contract Project is Ownable, AccessControl, IProject {
      * @dev Get project owner
      */
     function getOwner() external view returns (address) {
-        return this.owner();
+        return creator;
     }
 
     /**
@@ -72,12 +72,25 @@ contract Project is Ownable, AccessControl, IProject {
         return address(token);
     }
 
-    function _setMembers(address[] memory addList, address[] memory removeList) internal {
-        for (uint256 i = 0; i < addList.length; i++) {
-            members[addList[i]] = true;
+    function _setMembers(
+        address[] memory addAdminList,
+        address[] memory removeAdminList,
+        address[] memory addMemberList,
+        address[] memory removeMemberList
+    ) internal {
+        // admin
+        for (uint256 i = 0; i < addAdminList.length; i++) {
+            _grantRole(DEFAULT_ADMIN_ROLE, addAdminList[i]);
         }
-        for (uint256 i = 0; i < removeList.length; i++) {
-            members[removeList[i]] = false;
+        for (uint256 i = 0; i < removeAdminList.length; i++) {
+            _revokeRole(DEFAULT_ADMIN_ROLE, removeAdminList[i]);
+        }
+        // member
+        for (uint256 i = 0; i < addMemberList.length; i++) {
+            _grantRole(MEMBER_ROLE, addMemberList[i]);
+        }
+        for (uint256 i = 0; i < removeMemberList.length; i++) {
+            _revokeRole(MEMBER_ROLE, removeMemberList[i]);
         }
     }
 
@@ -85,10 +98,20 @@ contract Project is Ownable, AccessControl, IProject {
      * @dev Update project members
      */
     function setMembers(
-        address[] memory addList,
-        address[] memory removeList
+        address[] memory addAdminList,
+        address[] memory removeAdminList,
+        address[] memory addMemberList,
+        address[] memory removeMemberList
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setMembers(addList, removeList);
+        _setMembers(addAdminList, removeAdminList, addMemberList, removeMemberList);
+    }
+
+    function isMember(address from) public view returns (bool) {
+        return hasRole(MEMBER_ROLE, from);
+    }
+
+    function isAdmin(address from) public view returns (bool) {
+        return hasRole(DEFAULT_ADMIN_ROLE, from);
     }
 
     /**
@@ -122,7 +145,7 @@ contract Project is Ownable, AccessControl, IProject {
      * @dev Delegate - Verify attesting for contribute resolver
      */
     function onPassMakeContribution(Attestation calldata attestation) external view returns (bool) {
-        require(members[attestation.attester] == true, "Make vote verify failed.");
+        require(isMember(attestation.attester), "Make vote verify failed.");
         return true;
     }
 
@@ -132,7 +155,7 @@ contract Project is Ownable, AccessControl, IProject {
     function onPassRevokeContribution(
         Attestation calldata attestation
     ) external view returns (bool) {
-        require(members[attestation.attester] == true, "Revoke vote verify failed.");
+        require(isMember(attestation.attester), "Revoke vote verify failed.");
         return true;
     }
 
@@ -140,7 +163,10 @@ contract Project is Ownable, AccessControl, IProject {
      * @dev Delegate - Verify attesting for voting resolver
      */
     function onPassVoteContribution(Attestation calldata attestation) external view returns (bool) {
-        require(members[attestation.attester] == true, "Make vote verify failed.");
+        require(isMember(attestation.attester), "Make vote verify failed.");
+
+        (, uint64 cid, , ) = abi.decode(attestation.data, (address, uint64, uint8, string));
+        require(claims[cid] == address(0), "This contribution was claimed");
         return true;
     }
 
@@ -150,7 +176,7 @@ contract Project is Ownable, AccessControl, IProject {
     function onPassClaimContribution(Attestation calldata attestation) external returns (bool) {
         address attester = attestation.attester;
         // verify member
-        require(members[attester] == true, "Make vote verify failed.");
+        require(isMember(attestation.attester), "Make vote verify failed.");
 
         (
             ,

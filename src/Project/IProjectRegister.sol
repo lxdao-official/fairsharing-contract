@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 struct CreateParams {
-    address admin;
+    address[] admins;
     address[] members;
     string tokenName;
     string tokenSymbol;

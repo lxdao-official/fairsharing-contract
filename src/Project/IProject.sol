@@ -10,8 +10,9 @@ struct VotingStrategy {
 }
 
 struct InitializeParams {
+    address creator;
     address register;
-    address owner;
+    address[] admins;
     address[] members;
     VotingStrategy votingStrategy;
     address token;
@@ -20,7 +21,16 @@ struct InitializeParams {
 interface IProject {
     function initialize(InitializeParams calldata param) external;
 
-    function setMembers(address[] memory addList, address[] memory removeList) external;
+    function setMembers(
+        address[] memory addAdminList,
+        address[] memory removeAdminList,
+        address[] memory addMemberList,
+        address[] memory removeMemberList
+    ) external;
+
+    function isMember(address from) external view returns (bool);
+
+    function isAdmin(address from) external view returns (bool);
 
     function updateVotingStrategy(address _votingStrategy) external;
 

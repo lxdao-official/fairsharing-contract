@@ -155,8 +155,9 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         );
 
         InitializeParams memory initParams = InitializeParams({
+            creator: _msgSender(),
             register: address(this),
-            owner: params.admin,
+            admins: params.admins,
             members: params.members,
             votingStrategy: VotingStrategy({
                 addr: params.voteStrategy,
