@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IProjectRegister.sol";
 import "./IProject.sol";
 import "./ProjectToken.sol";
+import "../votingStrategy/IVotingStrategy.sol";
 
 contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
     // projects indexer
@@ -155,13 +156,15 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         );
 
         InitializeParams memory initParams = InitializeParams({
+            creator: _msgSender(),
             register: address(this),
-            owner: params.admin,
+            admins: params.admins,
             members: params.members,
             votingStrategy: VotingStrategy({
                 addr: params.voteStrategy,
-                data: params.voteStrategyData,
-                passingRate: params.votePassingRate
+                weights: params.voteWeights,
+                threshold: params.voteThreshold,
+                data: params.voteStrategyData
             }),
             token: token
         });

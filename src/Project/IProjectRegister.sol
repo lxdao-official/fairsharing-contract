@@ -2,13 +2,14 @@
 pragma solidity ^0.8.19;
 
 struct CreateParams {
-    address admin;
+    address[] admins;
     address[] members;
     string tokenName;
     string tokenSymbol;
     address voteStrategy;
+    uint256[] voteWeights;
+    uint256 voteThreshold;
     bytes voteStrategyData;
-    uint256 votePassingRate;
 }
 
 interface IProjectRegister {

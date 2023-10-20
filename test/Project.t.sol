@@ -9,20 +9,15 @@ import {VoteResolver} from "../src/resolver/VoteResolver.sol";
 import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
-//import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-//import "murky/Merkle.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
-import "../src/votingStrategy/DefaultVotingStrategy.sol";
+import "../src/votingStrategy/DefaultRelativeVotingStrategy.sol";
 import "../src/votingStrategy/IVotingStrategy.sol";
-import "../src/votingStrategy/VotingWeightStrategy.sol";
 import "../src/upgrade/ProjectRegisterUpgradeableProxy.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
     uint256[] private _attesterPrivateKeys;
-    //    Merkle private _merkleTree;
-    //    bytes32[] private _proofData;
 
     ISchemaRegistry private _schemaRegistry;
     IEAS private _eas;
@@ -43,7 +38,7 @@ contract ProjectTest is Test {
 
     address votingStrategy;
 
-    address votingWeightStrategy;
+    //    address votingWeightStrategy;
 
     address tokenTemplate;
 
@@ -60,11 +55,11 @@ contract ProjectTest is Test {
 
         Project _template = new Project();
 
-        DefaultVotingStrategy strategy = new DefaultVotingStrategy();
+        DefaultRelativeVotingStrategy strategy = new DefaultRelativeVotingStrategy();
         votingStrategy = address(strategy);
 
-        VotingWeightStrategy strategy1 = new VotingWeightStrategy();
-        votingWeightStrategy = address(strategy1);
+        //        VotingWeightStrategy strategy1 = new VotingWeightStrategy();
+        //        votingWeightStrategy = address(strategy1);
 
         ProjectToken _token = new ProjectToken();
         tokenTemplate = address(_token);
@@ -80,36 +75,42 @@ contract ProjectTest is Test {
 
     function registerProject() private {
         uint256[] memory weights = new uint256[](_attesters.length);
-        weights[0] = 0;
-        weights[1] = 0;
+        weights[0] = 10;
+        weights[1] = 10;
         weights[2] = 10;
         weights[3] = 10;
-        weights[4] = 30;
+        weights[4] = 10;
         weights[5] = 10;
         weights[6] = 10;
-        weights[7] = 20;
+        weights[7] = 10;
         weights[8] = 10;
-        weights[9] = 0;
+        weights[9] = 10;
 
         for (uint256 i = 100; i < 110; i++) {
-            address addr = makeAddr(Strings.toString(i));
+            address admin = _attesters[0];
+
+            address[] memory adminList = new address[](1);
+            adminList[0] = admin;
 
             bytes memory emptyData = abi.encode("");
-            bytes memory votingStrategyData = abi.encode(_attesters, weights);
+            //            bytes memory votingStrategyData = abi.encode(_attesters, weights);
 
             CreateParams memory params = CreateParams({
-                admin: addr,
                 members: _attesters,
+                admins: adminList,
                 tokenName: "ProjectName",
                 tokenSymbol: "FairSharingToken",
-                voteStrategy: i % 2 == 1 ? votingStrategy : votingWeightStrategy,
-                voteStrategyData: i % 2 == 1 ? emptyData : votingStrategyData,
-                votePassingRate: 60
+                voteStrategy: votingStrategy,
+                voteWeights: weights,
+                voteStrategyData: emptyData,
+                voteThreshold: 50
             });
 
+            vm.startPrank(admin);
             address projectAddress = _registry.create(params);
+            vm.stopPrank();
 
-            address latestProject = _registry.getOwnerLatestProject(addr, 0, i - 100);
+            address latestProject = _registry.getOwnerLatestProject(admin, 0, i - 100);
             assert(projectAddress == latestProject);
             projectAddresses.push(projectAddress);
         }
@@ -257,6 +258,45 @@ contract ProjectTest is Test {
         vm.stopPrank();
     }
 
+    function testSetMembers() public {
+        address projectAddress = projectAddresses[0];
+
+        address admin = makeAddr("123");
+        address[] memory addAdminList = new address[](1);
+        addAdminList[0] = admin;
+
+        address[] memory removeAdminList = new address[](1);
+        removeAdminList[0] = _attesters[0];
+
+        address member = makeAddr("456");
+        address[] memory addMemberList = new address[](2);
+        addMemberList[0] = admin;
+        addMemberList[1] = member;
+
+        address[] memory removeMemberList = new address[](1);
+        removeMemberList[0] = _attesters[1];
+
+        assert(IProject(projectAddress).isAdmin(_attesters[0]) == true);
+        assert(IProject(projectAddress).isMember(_attesters[1]) == true);
+
+        vm.startPrank(_attesters[0]);
+        IProject(projectAddress).setMembers(
+            addAdminList,
+            removeAdminList,
+            addMemberList,
+            removeMemberList
+        );
+        vm.stopPrank();
+
+        assert(IProject(projectAddress).isAdmin(admin) == true);
+
+        assert(IProject(projectAddress).isAdmin(_attesters[0]) == false);
+
+        assert(IProject(projectAddress).isMember(admin) == true);
+
+        assert(IProject(projectAddress).isMember(_attesters[1]) == false);
+    }
+
     function testPrepareContribution() public {
         address projectAddress = projectAddresses[0];
         uint64 cid = uint64(123);
@@ -342,14 +382,14 @@ contract ProjectTest is Test {
         uint8[] memory values = new uint8[](_attesters.length);
         values[0] = 1;
         values[1] = 1;
-        values[2] = 1;
+        values[2] = 3;
         values[3] = 1;
         values[4] = 2;
         values[5] = 1;
-        values[6] = 3;
-        values[7] = 1;
-        values[8] = 1;
-        values[9] = 1;
+        values[6] = 1;
+        values[7] = 2;
+        values[8] = 2;
+        values[9] = 3;
 
         for (uint256 i = 0; i < values.length; i++) {
             vote(
