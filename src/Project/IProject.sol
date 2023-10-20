@@ -2,12 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
-
-struct VotingStrategy {
-    address addr;
-    bytes data;
-    uint256 passingRate;
-}
+import "../votingStrategy/IVotingStrategy.sol";
 
 struct InitializeParams {
     address creator;

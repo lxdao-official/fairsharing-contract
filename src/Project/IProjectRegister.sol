@@ -7,8 +7,9 @@ struct CreateParams {
     string tokenName;
     string tokenSymbol;
     address voteStrategy;
+    uint256[] voteWeights;
+    uint256 voteThreshold;
     bytes voteStrategyData;
-    uint256 votePassingRate;
 }
 
 interface IProjectRegister {

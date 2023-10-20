@@ -205,8 +205,9 @@ contract Project is AccessControl, IProject {
         bool result = IVotingStrategy(votingStrategy.addr).getResult(
             voters,
             values,
-            votingStrategy.data,
-            votingStrategy.passingRate
+            votingStrategy.weights,
+            votingStrategy.threshold,
+            votingStrategy.data
         );
         if (result) {
             // mint

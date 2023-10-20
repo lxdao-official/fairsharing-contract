@@ -162,8 +162,9 @@ contract ProjectRegistryV2 is OwnableUpgradeable, IProjectRegister {
             members: params.members,
             votingStrategy: VotingStrategy({
                 addr: params.voteStrategy,
-                data: params.voteStrategyData,
-                passingRate: params.votePassingRate
+                weights: params.voteWeights,
+                threshold: params.voteThreshold,
+                data: params.voteStrategyData
             }),
             token: token
         });
