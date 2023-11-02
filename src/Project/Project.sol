@@ -29,7 +29,7 @@ contract Project is AccessControl, IProject {
     VotingStrategy public votingStrategy;
 
     // cid => owner
-    mapping(uint64 => address) private claims;
+    mapping(bytes32 => address) private claims;
 
     address public creator;
 
@@ -54,7 +54,7 @@ contract Project is AccessControl, IProject {
     /**
      * @dev Get claims
      */
-    function getClaims(uint64 cid) external view returns (address) {
+    function getClaims(bytes32 cid) external view returns (address) {
         return claims[cid];
     }
 
@@ -165,7 +165,7 @@ contract Project is AccessControl, IProject {
     function onPassVoteContribution(Attestation calldata attestation) external view returns (bool) {
         require(isMember(attestation.attester), "Make vote verify failed.");
 
-        (, uint64 cid, , ) = abi.decode(attestation.data, (address, uint64, uint8, string));
+        (, bytes32 cid, , ) = abi.decode(attestation.data, (address, bytes32, uint8, string));
         require(claims[cid] == address(0), "This contribution was claimed");
         return true;
     }
@@ -180,7 +180,7 @@ contract Project is AccessControl, IProject {
 
         (
             ,
-            uint64 cid,
+            bytes32 cid,
             address[] memory voters,
             uint8[] memory values,
             address receiver,
@@ -188,7 +188,7 @@ contract Project is AccessControl, IProject {
             bytes memory signature
         ) = abi.decode(
                 attestation.data,
-                (address, uint64, address[], uint8[], address, uint256, bytes)
+                (address, bytes32, address[], uint8[], address, uint256, bytes)
             );
 
         require(claims[cid] == address(0), "This contribution was claimed");

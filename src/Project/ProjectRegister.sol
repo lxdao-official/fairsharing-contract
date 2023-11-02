@@ -137,6 +137,14 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         }
     }
 
+    function getCID(
+        uint256 chainId,
+        uint256 timestamp,
+        uint256 salt
+    ) external pure returns (bytes32) {
+        return keccak256(abi.encodePacked(chainId, timestamp, salt));
+    }
+
     /**
      * @dev Create project by anyone
      *

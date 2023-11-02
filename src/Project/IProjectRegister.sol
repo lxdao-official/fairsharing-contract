@@ -32,6 +32,12 @@ interface IProjectRegister {
 
     function updateProjectTokenTemplate(address projectTokenTemplate) external;
 
+    function getCID(
+        uint256 chainId,
+        uint256 timestamp,
+        uint256 salt
+    ) external pure returns (bytes32);
+
     function create(CreateParams calldata params) external returns (address);
 
     /**

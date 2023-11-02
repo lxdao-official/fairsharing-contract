@@ -134,7 +134,7 @@ contract ProjectTest is Test {
     function prepare(
         address attester,
         address projectAddress,
-        uint64 cid,
+        bytes32 cid,
         uint256 token
     ) private returns (bytes32 contributionAttestationUid) {
         vm.startPrank(attester);
@@ -180,7 +180,7 @@ contract ProjectTest is Test {
         bytes32 contributionAttestationUid,
         address attester,
         address projectAddress,
-        uint64 cid,
+        bytes32 cid,
         uint8 value,
         string memory comment
     ) private returns (bytes32 voteAttestationUid) {
@@ -214,7 +214,7 @@ contract ProjectTest is Test {
 
     struct ClaimParams {
         address projectAddress;
-        uint64 cid;
+        bytes32 cid;
         address attester;
         address receiver;
         uint256 token;
@@ -299,7 +299,9 @@ contract ProjectTest is Test {
 
     function testPrepareContribution() public {
         address projectAddress = projectAddresses[0];
-        uint64 cid = uint64(123);
+
+        bytes32 cid = keccak256(abi.encodePacked(block.chainid, uint256(123)));
+
         uint256 token = 2000;
         uint256 attesterIndex = 0;
 
@@ -328,7 +330,9 @@ contract ProjectTest is Test {
 
     function testVote() public {
         address projectAddress = projectAddresses[0];
-        uint64 cid = uint64(123);
+
+        bytes32 cid = keccak256(abi.encodePacked(block.chainid, uint256(123)));
+
         uint256 token = 2000;
         uint256 attesterIndex = 0;
         bytes32 contributionAttestationUid = prepare(
@@ -369,7 +373,7 @@ contract ProjectTest is Test {
 
     function testClaim() public {
         address projectAddress = projectAddresses[0];
-        uint64 cid = uint64(123);
+        bytes32 cid = keccak256(abi.encodePacked(block.chainid, uint256(123)));
         uint256 token = 1 ether;
         uint256 attesterIndex = 0;
         bytes32 contributionAttestationUid = prepare(
