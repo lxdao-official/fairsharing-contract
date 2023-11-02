@@ -121,13 +121,13 @@ contract ProjectTest is Test {
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
 
-        _contributionSchemaTemplate = "address ProjectAddress, uint64 ContributionID, string Detail, string Type, string Proof, uint256 Token";
+        _contributionSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, string Details, string Type, string Proof, uint256 startDate, uint256 EndDate, uint256 TokenAmount, string Extended";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
-        _voteSchemaTemplate = "address ProjectAddress, uint64 ContributionID, uint8 VoteChoice, string Comment";
+        _voteSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, uint8 VoteChoice, string Comment";
         _schemaRegistry.register(_voteSchemaTemplate, _voteResolver, true);
 
-        _claimSchemaTemplate = "address ProjectAddress, uint64 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 Token, bytes Signatures";
+        _claimSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 TokenAmount, bytes Signatures";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
     }
 
@@ -154,7 +154,10 @@ contract ProjectTest is Test {
                         "contribution detail",
                         "contribution type",
                         "the poc",
-                        token
+                        0,
+                        0,
+                        token,
+                        "Extended"
                     ),
                     value: 0
                 })
