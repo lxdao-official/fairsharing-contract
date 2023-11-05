@@ -31,7 +31,7 @@ interface IProject {
 
     function updateVotingStrategyData(bytes calldata data) external;
 
-    function getClaims(uint64 cid) external view returns (address);
+    function getClaims(bytes32 cid) external view returns (address);
 
     function getOwner() external view returns (address);
 

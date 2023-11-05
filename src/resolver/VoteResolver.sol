@@ -18,7 +18,7 @@ contract VoteResolver is Ownable, SchemaResolver {
     ) internal override returns (bool) {
         (address projectAddress, , , ) = abi.decode(
             attestation.data,
-            (address, uint64, uint8, string)
+            (address, bytes32, uint8, string)
         );
 
         require(projectAddress != address(0), "Contribution project not found.");
