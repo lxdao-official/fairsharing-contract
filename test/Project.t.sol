@@ -121,7 +121,7 @@ contract ProjectTest is Test {
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
 
-        _contributionSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, string Details, string Type, string Proof, uint256 startDate, uint256 EndDate, uint256 TokenAmount, string Extended";
+        _contributionSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, string Details, string Type, string Proof, uint256 StartDate, uint256 EndDate, uint256 TokenAmount, string Extended";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
 
         _voteSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, uint8 VoteChoice, string Comment";

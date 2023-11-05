@@ -18,20 +18,20 @@
 * **ProjectRegisterUpgradeableProxy**: [0x9B2A807084B7a6ECD646a1dFc217dfAaDBEFEF10](https://optimistic.etherscan.io/address/0x9B2A807084B7a6ECD646a1dFc217dfAaDBEFEF10)
 
 ### Optimism-Goerli
-* **Contribution Schema**: [0xa7dca651e011d44363742bddfde1f72c5cec536858589b89778efc5bcdff868b](https://optimism-goerli-bedrock.easscan.org/schema/view/0xa7dca651e011d44363742bddfde1f72c5cec536858589b89778efc5bcdff868b)
-* **Vote Schema**: [0x1654a49365e83e920d7444dc48423cf16be33f9f902dca8500d00766cb9b8fd2](https://optimism-goerli-bedrock.easscan.org/schema/view/0x1654a49365e83e920d7444dc48423cf16be33f9f902dca8500d00766cb9b8fd2)
-* **Claim Schema**: [0x7cc6a5995560f61cf4f77c00facfc83f93ec3ca95aad9a57e80504efb92a438a](https://optimism-goerli-bedrock.easscan.org/schema/view/0x7cc6a5995560f61cf4f77c00facfc83f93ec3ca95aad9a57e80504efb92a438a)
+* **Contribution Schema**: [0x0228657dc20f814b0770867d1a85ac473a0dc393c52603ef318bdab79dd9ea63](https://optimism-goerli-bedrock.easscan.org/schema/view/0x0228657dc20f814b0770867d1a85ac473a0dc393c52603ef318bdab79dd9ea63)
+* **Vote Schema**: [0xe045889447a1b5ec1e4771b23e89f38f1cf379ec2e708e1789dfbf4739cdf56f](https://optimism-goerli-bedrock.easscan.org/schema/view/0xe045889447a1b5ec1e4771b23e89f38f1cf379ec2e708e1789dfbf4739cdf56f)
+* **Claim Schema**: [0x4670eabb8d0ed4d28ed4b411defaf202695497dd78f32627dd77d3a0c4c00024](https://optimism-goerli-bedrock.easscan.org/schema/view/0x4670eabb8d0ed4d28ed4b411defaf202695497dd78f32627dd77d3a0c4c00024)
 
 
-* **ContributionResolver**: [0xE055bb5F0C9FeF251573aE5d3B853a94510262ed](https://goerli-optimism.etherscan.io/address/0xe055bb5f0c9fef251573ae5d3b853a94510262ed)
-* **VoteResolver**: [0x8415320201C7E71cb54ee4B30e0b1549Dc676958](https://goerli-optimism.etherscan.io/address/0x8415320201C7E71cb54ee4B30e0b1549Dc676958)
-* **ClaimResolver**: [0x2061cffe8de147D133D0FeD011De2724a36cF6CF](https://goerli-optimism.etherscan.io/address/0x2061cffe8de147D133D0FeD011De2724a36cF6CF)
-* **Project**: [0x168dEF42CdD95b574c704a7d00284e5c81514e59](https://goerli-optimism.etherscan.io/address/0x168dEF42CdD95b574c704a7d00284e5c81514e59)
-* **ProjectToken**: [0x16E0259f2878ad6668aaDEb671cA5be1EA8615DB](https://goerli-optimism.etherscan.io/address/0x16E0259f2878ad6668aaDEb671cA5be1EA8615DB)
-* **DefaultRelativeVotingStrategy**: [0x13A5DfeB3E823378e379Bb59A46c5c9E19a3Fc37](https://goerli-optimism.etherscan.io/address/0x13A5DfeB3E823378e379Bb59A46c5c9E19a3Fc37)
-* **ProjectRegistry**: [0xb83F9A3B941aAA06Fd34b02a490B592e3a300376](https://goerli-optimism.etherscan.io/address/0xb83F9A3B941aAA06Fd34b02a490B592e3a300376)
-* **ProjectRegisterProxyAdmin**: [0x7b36BfAF9DB0e8309aFd85dE339E935e46E4600a](https://goerli-optimism.etherscan.io/address/0x7b36BfAF9DB0e8309aFd85dE339E935e46E4600a)
-* **ProjectRegisterUpgradeableProxy**: [0xA164E14558B4665ee512cF15dD12d1a7A8492830](https://goerli-optimism.etherscan.io/address/0xA164E14558B4665ee512cF15dD12d1a7A8492830)
+* **ContributionResolver**: [0x4eC2B746fa713f6bDf3fb9b8A89c64fC4756bAdA](https://goerli-optimism.etherscan.io/address/0x4eC2B746fa713f6bDf3fb9b8A89c64fC4756bAdA)
+* **VoteResolver**: [0x698f55f60745470CA8Fb00355a8296eC77e4C088](https://goerli-optimism.etherscan.io/address/0x698f55f60745470CA8Fb00355a8296eC77e4C088)
+* **ClaimResolver**: [0xeaf9ac15C02Bacbe6c8e7cE0BaB997Ffd5a61fE7](https://goerli-optimism.etherscan.io/address/0xeaf9ac15C02Bacbe6c8e7cE0BaB997Ffd5a61fE7)
+* **Project**: [0x57bFD3A2eEe5902864EDBdcCcE1ffd4C16118C7B](https://goerli-optimism.etherscan.io/address/0x168dEF42CdD95b574c704a7d00284e5c81514e59)
+* **ProjectToken**: [0xd540171dE3e1fd7B07D7bc18C46bDFB1De2a7cb1](https://goerli-optimism.etherscan.io/address/0x16E0259f2878ad6668aaDEb671cA5be1EA8615DB)
+* **DefaultRelativeVotingStrategy**: [0xCdff95c4a99c1A645D6Be65c01be027cFE8cDC26](https://goerli-optimism.etherscan.io/address/0xCdff95c4a99c1A645D6Be65c01be027cFE8cDC26)
+* **ProjectRegistry**: [0x5c4982A5A9B4bBc271CF1234e2d70D6FE49586a1](https://goerli-optimism.etherscan.io/address/0x5c4982A5A9B4bBc271CF1234e2d70D6FE49586a1)
+* **ProjectRegisterProxyAdmin**: [0xd12bBa3f61ed9335038F8dF6e214f56f8a05DABC](https://goerli-optimism.etherscan.io/address/0xd12bBa3f61ed9335038F8dF6e214f56f8a05DABC)
+* **ProjectRegisterUpgradeableProxy**: [0x5AeA8cbF64f9Cc353E56D1EC1bEE2D49b3e4a24f](https://goerli-optimism.etherscan.io/address/0x5AeA8cbF64f9Cc353E56D1EC1bEE2D49b3e4a24f)
 
 ## Usage
 
