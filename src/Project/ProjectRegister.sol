@@ -56,7 +56,8 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
     event ProjectCreated(
         address indexed projectAddress,
         address indexed implementation,
-        uint256 index
+        uint256 index,
+        address indexed creator
     );
 
     /**
@@ -183,7 +184,7 @@ contract ProjectRegistry is OwnableUpgradeable, IProjectRegister {
         // token initialize
         IProjectToken(token).initialize(params.tokenName, params.tokenSymbol, projectAddress);
 
-        emit ProjectCreated(projectAddress, projectTemplate, index);
+        emit ProjectCreated(projectAddress, projectTemplate, index, _msgSender());
 
         projectsIndexer[index] = projectAddress;
         projectsCount++;

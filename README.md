@@ -2,20 +2,21 @@
 ## Deployed Contract
 
 ### Optimism
-* **Contribution Schema**: [0x94cef30720b63a5aa25982d458049c0e731d4d976626acfb74c2865c331bd856](https://optimism.easscan.org/schema/view/0x94cef30720b63a5aa25982d458049c0e731d4d976626acfb74c2865c331bd856)
-* **Vote Schema**: [0x4178647bccbc81a81357a9d969526a23e269123ff71f69fc8708c9d099d0e14a](https://optimism.easscan.org/schema/view/0x4178647bccbc81a81357a9d969526a23e269123ff71f69fc8708c9d099d0e14a)
-* **Claim Schema**: [0x60cf8f1d82f6322b466cd0141bd3a68f7732373e805042e0000a259182a67612](https://optimism.easscan.org/schema/view/0x60cf8f1d82f6322b466cd0141bd3a68f7732373e805042e0000a259182a67612)
+* **Contribution Schema**: [0xc012dddde021c7258ff4671b1be08fe6b3b51d98bd0a89b43d020fafde24b476](https://optimism.easscan.org/schema/view/0xc012dddde021c7258ff4671b1be08fe6b3b51d98bd0a89b43d020fafde24b476)
+* **Vote Schema**: [0x2a3fe60324ed2be48cf5790d6edc7bdbc28042f7abebb81329aec640f3439a52](https://optimism.easscan.org/schema/view/0x2a3fe60324ed2be48cf5790d6edc7bdbc28042f7abebb81329aec640f3439a52)
+* **Claim Schema**: [0x5bf21260c46b75fe29ccc66463c2bf4cf71264da7610f52cafefa5604d30fe61](https://optimism.easscan.org/schema/view/0x5bf21260c46b75fe29ccc66463c2bf4cf71264da7610f52cafefa5604d30fe61)
 
 
-* **ContributionResolver**: [0xdBB7810F8972EE0b35D2F9E8Ef6F995694a6Defd](https://optimistic.etherscan.io/address/0xdBB7810F8972EE0b35D2F9E8Ef6F995694a6Defd)
-* **VoteResolver**: [0x648b31eF1d882Ac21A0d5eccff12f3F4Cee3D20D](https://optimistic.etherscan.io/address/0x648b31eF1d882Ac21A0d5eccff12f3F4Cee3D20D)
-* **ClaimResolver**: [0x3272fD8e09e8Fa7F41134876FbEe1d715E7A008b](https://optimistic.etherscan.io/address/0x3272fD8e09e8Fa7F41134876FbEe1d715E7A008b)
-* **Project**: [0x4911fC85BfED269f7A37214028CF428C637Bc196](https://optimistic.etherscan.io/address/0x4911fC85BfED269f7A37214028CF428C637Bc196)
-* **ProjectToken**: [0x9843cdD2F79723596df556068759cDA510602b92](https://optimistic.etherscan.io/address/0x9843cdD2F79723596df556068759cDA510602b92)
-* **DefaultRelativeVotingStrategy**: [0xe5ffAF764995fD864651bb71f4bb1d6ffe17665F](https://optimistic.etherscan.io/address/0xe5ffAF764995fD864651bb71f4bb1d6ffe17665F)
-* **ProjectRegistry**: [0x591e1d022a2d53a7437e7975e9154494a1438134](https://optimistic.etherscan.io/address/0x591e1d022a2d53a7437e7975e9154494a1438134)
-* **ProjectRegisterProxyAdmin**: [0x67E216768a375A8326f0F1987b124a49410D8CAf](https://optimistic.etherscan.io/address/0x67E216768a375A8326f0F1987b124a49410D8CAf)
-* **ProjectRegisterUpgradeableProxy**: [0x9B2A807084B7a6ECD646a1dFc217dfAaDBEFEF10](https://optimistic.etherscan.io/address/0x9B2A807084B7a6ECD646a1dFc217dfAaDBEFEF10)
+* **ContributionResolver**: [0x64f2143a6FD6c7a35bE8D03dd30CA754f7da8501](https://optimistic.etherscan.io/address/0x64f2143a6FD6c7a35bE8D03dd30CA754f7da8501)
+* **VoteResolver**: [0xfC05d45860e827bdcEaB9913bA1E835bc85F0006](https://optimistic.etherscan.io/address/0xfC05d45860e827bdcEaB9913bA1E835bc85F0006)
+* **ClaimResolver**: [0x2E742dbC8d79318013eF9eF89381274147c52f34](https://optimistic.etherscan.io/address/0x2E742dbC8d79318013eF9eF89381274147c52f34)
+* **Project**: [0x9a3eD79680390Cf6778975F4c4ac34f38b3B55f3](https://optimistic.etherscan.io/address/0x9a3eD79680390Cf6778975F4c4ac34f38b3B55f3)
+* **ProjectToken**: [0x75d02B513772BD1AF6c28940699a1a697e0c7ddb](https://optimistic.etherscan.io/address/0x75d02B513772BD1AF6c28940699a1a697e0c7ddb)
+* **DefaultRelativeVotingStrategy**: [0x6fCa841788F8EAd49b2a94516F275FaA5Ae08d16](https://optimistic.etherscan.io/address/0x6fCa841788F8EAd49b2a94516F275FaA5Ae08d16)
+* **RelativeVotingStrategy2**: [0xBD13f4962C1a379DA6476Bd8d0d494c04c2E88C8](https://optimistic.etherscan.io/address/0xBD13f4962C1a379DA6476Bd8d0d494c04c2E88C8)
+* **ProjectRegistry**: [0xcF5d06D880d0D92925CC35E159260a11208C4eC0](https://optimistic.etherscan.io/address/0xcF5d06D880d0D92925CC35E159260a11208C4eC0)
+* **ProjectRegisterProxyAdmin**: [0x2fde3a2A9bD0eBB470c195Ccd9C2291064854152](https://optimistic.etherscan.io/address/0x2fde3a2A9bD0eBB470c195Ccd9C2291064854152)
+* **ProjectRegisterUpgradeableProxy**: [0xF124Aca94e664Bfd5373feA9E2410FD799a8a08B](https://optimistic.etherscan.io/address/0xF124Aca94e664Bfd5373feA9E2410FD799a8a08B)
 
 ### Optimism-Goerli
 * **Contribution Schema**: [0x0228657dc20f814b0770867d1a85ac473a0dc393c52603ef318bdab79dd9ea63](https://optimism-goerli-bedrock.easscan.org/schema/view/0x0228657dc20f814b0770867d1a85ac473a0dc393c52603ef318bdab79dd9ea63)
