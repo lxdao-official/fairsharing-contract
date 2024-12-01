@@ -48,7 +48,7 @@ contract Project is AccessControl, IProject {
         token = IProjectToken(param.token);
 
         address[] memory empty = new address[](0);
-        _setMembers(param.members, empty, param.members, empty);
+        _setMembers(param.admins, empty, param.members, empty);
     }
 
     /**

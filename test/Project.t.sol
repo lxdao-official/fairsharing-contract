@@ -7,6 +7,7 @@ import "../src/project/Project.sol";
 import {ContributionResolver} from "../src/resolver/ContributionResolver.sol";
 import {VoteResolver} from "../src/resolver/VoteResolver.sol";
 import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
+import {AllocateResolver} from "../src/resolver/AllocateResolver.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
@@ -28,10 +29,12 @@ contract ProjectTest is Test {
     string private _contributionSchemaTemplate;
     string private _voteSchemaTemplate;
     string private _claimSchemaTemplate;
+    string private _allocationSchemaTemplate;
 
     ISchemaResolver private _contributionResolver;
     ISchemaResolver private _voteResolver;
     ISchemaResolver private _claimResolver;
+    ISchemaResolver private _allocationResolver;
 
     IProjectRegister private _registry;
     address[] projectAddresses;
@@ -120,6 +123,7 @@ contract ProjectTest is Test {
         _contributionResolver = new ContributionResolver(_eas);
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
+        _allocationResolver = new AllocateResolver(_eas);
 
         _contributionSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, string Details, string Type, string Proof, uint256 StartDate, uint256 EndDate, uint256 TokenAmount, string Extended";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
@@ -129,6 +133,9 @@ contract ProjectTest is Test {
 
         _claimSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 TokenAmount, bytes Signatures";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
+
+        _allocationSchemaTemplate = "address ProjectAddress, string title, address[] walletAddresses, uint16[] allocationRatios, uint256[] tokenAmounts";
+        _schemaRegistry.register(_allocationSchemaTemplate, _allocationResolver, true);
     }
 
     function prepare(
@@ -422,5 +429,44 @@ contract ProjectTest is Test {
             uint256 amount = IERC20Upgradeable(tokenContract).balanceOf(receiver);
             console2.log("attester token amount: %d", amount);
         }
+    }
+
+    function testAllocate() public {
+        address projectAddress = projectAddresses[0];
+        address attester = _attesters[0];
+
+        uint16[] memory allocationRatios = new uint16[](_attesters.length);
+        uint256[] memory tokenAmounts = new uint256[](_attesters.length);
+        for (uint256 i = 0; i < _attesters.length; i++) {
+            allocationRatios[i] = 1000;
+            tokenAmounts[i] = 1500 gwei;
+        }
+
+        vm.startPrank(attester);
+        bytes32 uid = _eas.attest(
+            AttestationRequest({
+                schema: keccak256(
+                    abi.encodePacked(_allocationSchemaTemplate, _allocationResolver, true)
+                ),
+                data: AttestationRequestData({
+                    recipient: attester,
+                    expirationTime: 0,
+                    revocable: true,
+                    refUID: "",
+                    data: abi.encode(
+                        projectAddress,
+                        "title",
+                        _attesters,
+                        allocationRatios,
+                        tokenAmounts
+                    ),
+                    value: 0
+                })
+            })
+        );
+        vm.stopPrank();
+
+        console2.log("allocate uid:");
+        console2.logBytes32(uid);
     }
 }
