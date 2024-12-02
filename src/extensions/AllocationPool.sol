@@ -19,10 +19,13 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
     /**
      * @dev Emitted when allocation pool template changed.
      */
-    event ProjectTemplateChanged(
-        address indexed operator,
-        address indexed from,
-        address indexed to
+    event PoolTemplateChanged(address indexed operator, address indexed from, address indexed to);
+
+    event PoolCreated(
+        address indexed projectAddress,
+        address indexed implementation,
+        uint256 index,
+        address indexed creator
     );
 
     constructor(address _allocationTemplate) {
@@ -33,63 +36,67 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
         allocationPoolTemplate = _allocationPoolTemplate;
 
         if (_allocationPoolTemplate != allocationPoolTemplate) {
-            emit ProjectTemplateChanged(
-                _msgSender(),
-                allocationPoolTemplate,
-                _allocationPoolTemplate
-            );
+            emit PoolTemplateChanged(_msgSender(), allocationPoolTemplate, _allocationPoolTemplate);
             allocationPoolTemplate = _allocationPoolTemplate;
         }
     }
 
     function create(
-        AllocationPoolInitializeParams calldata param,
-        Allocation[] calldata allocations
-    ) external returns (address) {
-        address poolAddress = Clones.cloneDeterministic(
+        Allocation[] calldata allocations,
+        ExtraParams calldata params
+    ) external returns (address poolAddress) {
+        poolAddress = Clones.cloneDeterministic(
             allocationPoolTemplate,
             keccak256(abi.encodePacked(index))
         );
+        IAllocationPoolTemplate(poolAddress).initialize(
+            params.projectAddress,
+            params.creator,
+            params.depositor,
+            params.timeToClaim,
+            allocations
+        );
 
-        AllocationPoolInitializeParams memory initParams = AllocationPoolInitializeParams({
-            projectAddress: param.projectAddress,
-            creator: param.creator,
-            depositor: param.depositor,
-            timeToClaim: param.timeToClaim
-        });
-        IAllocationPoolTemplate(poolAddress).initialize(initParams, allocations);
-
+        emit PoolCreated(poolAddress, allocationPoolTemplate, index, _msgSender());
         index++;
-
-        // todo:event
-
-        return poolAddress;
     }
 }
 
 contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemplate {
     using SafeERC20 for IERC20;
 
+    address public projectAddress;
     address public creator;
     address public depositor;
     uint256 public timeToClaim;
-    mapping(address => bool) public claims;
+    // address -> bool
+    mapping(address => bool) public claimStatus;
+    // token -> amount
+    //    mapping(address => uint256) public unClaimedTokens;
     Allocation[] public allocations;
-    bool public isClaimNeedCheck;
+    bool public isClaimed;
 
+    event Deposited(address indexed from, address indexed token, uint256 amount);
+    event Refunded(address indexed from, address indexed token, uint256 amount);
+    event Claimed(address indexed from, address indexed token, uint256 amount);
     error RefundFailed();
+    error ClaimFailed();
 
     function initialize(
-        AllocationPoolInitializeParams calldata param,
+        address _projectAddress,
+        address _creator,
+        address _depositor,
+        uint256 _timeToClaim,
         Allocation[] calldata _allocations
     ) external {
-        creator = param.creator;
-        depositor = param.depositor;
-        timeToClaim = param.timeToClaim;
+        projectAddress = _projectAddress;
+        creator = _creator;
+        depositor = _depositor;
+        timeToClaim = _timeToClaim;
         for (uint32 i = 0; i < _allocations.length; i++) {
             allocations.push(_allocations[i]);
         }
-        isClaimNeedCheck = true;
+        isClaimed = false;
     }
 
     receive() external payable {}
@@ -100,10 +107,15 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
     ) external payable nonReentrant {
         require(tokens.length == amounts.length, "deposit arguments error.");
         address from = _msgSender();
+        // need approve first
         for (uint32 i = 0; i < tokens.length; i++) {
             IERC20(tokens[i]).safeTransferFrom(from, address(this), amounts[i]);
+            emit Deposited(from, tokens[i], amounts[i]);
         }
-        // todo:event
+        uint256 amountReceived = msg.value;
+        if (amountReceived > 0) {
+            emit Deposited(from, address(0), amountReceived);
+        }
     }
 
     function refund() external nonReentrant {
@@ -113,27 +125,56 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
         // check time
         if (block.timestamp < timeToClaim) {
             // refund
-            _refund(from);
+            _refund(from, true);
         } else {
-            // check assets
-            if (_assetsAreRight()) {
-                revert("No refunds are allowed during claim time.");
-            } else {
+            if (isClaimed) {
                 // refund
-                _refund(from);
+                _refund(from, false);
+            } else {
+                // check assets
+                if (_assetsAreRight()) {
+                    revert("No refunds are allowed during claim time.");
+                } else {
+                    // refund
+                    _refund(from, false);
+                }
             }
         }
-        // todo:event
     }
 
-    function _assetsAreRight() internal returns (bool) {
+    function refundUnspecifiedToken(address token) external nonReentrant {
+        address to = _msgSender();
+        require(to == depositor, "caller is not depositor");
+        for (uint32 i = 0; i < allocations.length; i++) {
+            Allocation memory allocation = allocations[i];
+            require(token != allocation.token, "just can refund unspecified token.");
+        }
+        if (token == address(0)) {
+            uint256 balance = address(this).balance;
+            if (balance > 0) {
+                (bool success, ) = to.call{value: balance}("");
+                if (!success) {
+                    revert RefundFailed();
+                }
+                emit Refunded(to, token, balance);
+            }
+        } else {
+            uint256 balance = IERC20(token).balanceOf(address(this));
+            if (balance > 0) {
+                IERC20(token).safeTransferFrom(address(this), to, balance);
+                emit Refunded(to, token, balance);
+            }
+        }
+    }
+
+    function _assetsAreRight() internal view returns (bool) {
         for (uint32 i = 0; i < allocations.length; i++) {
             Allocation memory allocation = allocations[i];
             address token = allocation.token;
             uint256 totalAmount = 0;
             // distribute every wallet
-            for (uint32 j = 0; j < allocation.amounts.length; j++) {
-                totalAmount += allocation.amounts[j];
+            for (uint32 j = 0; j < allocation.tokenAmounts.length; j++) {
+                totalAmount += allocation.tokenAmounts[j];
             }
             if (token == address(0)) {
                 if (totalAmount == address(this).balance) {
@@ -148,56 +189,75 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
         return true;
     }
 
-    function _refund(address to) internal {
+    function _refund(address to, bool isAll) internal {
         for (uint32 i = 0; i < allocations.length; i++) {
             address token = allocations[i].token;
             if (token == address(0)) {
-                uint256 balance = address(this).balance;
-                (bool success, ) = to.call{value: balance}("");
-                if (!success) {
-                    revert RefundFailed();
+                uint256 canRefundAmount = address(this).balance;
+                if (canRefundAmount > 0) {
+                    if (!isAll) {
+                        uint256 unClaimedAmount = allocations[i].unClaimedAmount;
+                        canRefundAmount -= unClaimedAmount;
+                    }
+                    (bool success, ) = to.call{value: canRefundAmount}("");
+                    if (!success) {
+                        revert RefundFailed();
+                    }
+                    emit Refunded(to, token, canRefundAmount);
                 }
             } else {
-                uint256 balance = IERC20(token).balanceOf(address(this));
-                IERC20(token).safeTransferFrom(address(this), to, balance);
+                uint256 canRefundAmount = IERC20(token).balanceOf(address(this));
+                if (canRefundAmount > 0) {
+                    if (!isAll) {
+                        uint256 unClaimedAmount = allocations[i].unClaimedAmount;
+                        canRefundAmount -= unClaimedAmount;
+                    }
+                    IERC20(token).safeTransferFrom(address(this), to, canRefundAmount);
+                    emit Refunded(to, token, canRefundAmount);
+                }
             }
         }
-        // todo:event
     }
 
     function claim() external nonReentrant {
         require(block.timestamp >= timeToClaim, "the claim time has not arrived yet.");
 
         address from = _msgSender();
-        require(claims[from], "you are already claimed.");
+        require(claimStatus[from], "you are already claimed.");
         // check
-        if (isClaimNeedCheck) {
+        if (!isClaimed) {
             require(_assetsAreRight(), "the contract's tokens balance don't match allocations");
         }
         // claim
         for (uint32 i = 0; i < allocations.length; i++) {
-            Allocation memory allocation = allocations[i];
+            Allocation storage allocation = allocations[i];
             address token = allocation.token;
 
             // distribute every wallet
             for (uint32 j = 0; j < allocation.addresses.length; j++) {
                 address to = allocation.addresses[j];
-                uint256 amount = allocation.amounts[j];
+                uint256 amount = allocation.tokenAmounts[j];
                 if (token == address(0)) {
                     (bool success, ) = to.call{value: amount}("");
                     if (!success) {
-                        revert RefundFailed();
+                        revert ClaimFailed();
                     }
+                    // record unclaimed token amount
+                    allocation.unClaimedAmount -= amount;
+
+                    emit Claimed(to, token, amount);
                 } else {
                     IERC20(token).safeTransferFrom(address(this), to, amount);
+                    // record unclaimed token amount
+                    allocation.unClaimedAmount -= amount;
+
+                    emit Claimed(to, token, amount);
                 }
             }
         }
-        claims[from] = true;
-        if (isClaimNeedCheck) {
-            isClaimNeedCheck = false;
+        claimStatus[from] = true;
+        if (!isClaimed) {
+            isClaimed = true;
         }
-
-        // todo:event
     }
 }

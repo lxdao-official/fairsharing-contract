@@ -3,31 +3,42 @@ pragma solidity ^0.8.19;
 
 struct Allocation {
     address token;
+    uint256 unClaimedAmount;
     address[] addresses;
-    uint256[] amounts;
+    uint256[] tokenAmounts;
+    uint16[] allocationRatios;
 }
 
-struct AllocationPoolInitializeParams {
+struct ExtraParams {
     address projectAddress;
     address creator;
     address depositor;
     uint256 timeToClaim;
-    //    Allocation[] allocations;
-    //    address[] tokens;
-    //    mapping(address => address[]) tokenAddresses;
-    //    mapping(address => address[]) tokenAmounts;
 }
 
 interface IAllocationPoolFactory {
+    function updateTemplate(address _allocationPoolTemplate) external;
+
     function create(
-        AllocationPoolInitializeParams calldata param,
-        Allocation[] calldata allocations
+        Allocation[] calldata allocations,
+        ExtraParams calldata param
     ) external returns (address);
 }
 
 interface IAllocationPoolTemplate {
     function initialize(
-        AllocationPoolInitializeParams calldata param,
+        address projectAddress,
+        address creator,
+        address depositor,
+        uint256 timeToClaim,
         Allocation[] calldata allocations
     ) external;
+
+    function deposit(address[] calldata tokens, uint256[] calldata amounts) external payable;
+
+    function refund() external;
+
+    function refundUnspecifiedToken(address token) external;
+
+    function claim() external;
 }
