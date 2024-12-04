@@ -9,6 +9,8 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "../project/IProject.sol";
 import "./IAllocationPool.sol";
 
+import "forge-std/console2.sol";
+
 contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
     // Created pool index, default is 0.
     uint256 private index;
@@ -71,8 +73,6 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
     uint256 public timeToClaim;
     // address -> bool
     mapping(address => bool) public claimStatus;
-    // token -> amount
-    //    mapping(address => uint256) public unClaimedTokens;
     Allocation[] public allocations;
     bool public isClaimed;
 
@@ -107,14 +107,18 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
     ) external payable nonReentrant {
         require(tokens.length == amounts.length, "deposit arguments error.");
         address from = _msgSender();
-        // need approve first
+
         for (uint32 i = 0; i < tokens.length; i++) {
-            IERC20(tokens[i]).safeTransferFrom(from, address(this), amounts[i]);
-            emit Deposited(from, tokens[i], amounts[i]);
-        }
-        uint256 amountReceived = msg.value;
-        if (amountReceived > 0) {
-            emit Deposited(from, address(0), amountReceived);
+            if (tokens[i] == address(0)) {
+                uint256 amountReceived = msg.value;
+                if (amountReceived > 0) {
+                    emit Deposited(from, address(0), amountReceived);
+                }
+            } else {
+                // need approve first
+                IERC20(tokens[i]).safeTransferFrom(from, address(this), amounts[i]);
+                emit Deposited(from, tokens[i], amounts[i]);
+            }
         }
     }
 
@@ -161,7 +165,7 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
         } else {
             uint256 balance = IERC20(token).balanceOf(address(this));
             if (balance > 0) {
-                IERC20(token).safeTransferFrom(address(this), to, balance);
+                IERC20(token).safeTransfer(to, balance);
                 emit Refunded(to, token, balance);
             }
         }
@@ -212,7 +216,7 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                         uint256 unClaimedAmount = allocations[i].unClaimedAmount;
                         canRefundAmount -= unClaimedAmount;
                     }
-                    IERC20(token).safeTransferFrom(address(this), to, canRefundAmount);
+                    IERC20(token).safeTransfer(to, canRefundAmount);
                     emit Refunded(to, token, canRefundAmount);
                 }
             }

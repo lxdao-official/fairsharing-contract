@@ -5,7 +5,7 @@ import "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaRes
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract AllocateResolver is Ownable, SchemaResolver {
+contract AllocationResolver is Ownable, SchemaResolver {
     constructor(IEAS eas) SchemaResolver(eas) {}
 
     function isPayable() public pure override returns (bool) {

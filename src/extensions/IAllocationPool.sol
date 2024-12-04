@@ -6,7 +6,7 @@ struct Allocation {
     uint256 unClaimedAmount;
     address[] addresses;
     uint256[] tokenAmounts;
-    uint16[] allocationRatios;
+    uint16[] ratios;
 }
 
 struct ExtraParams {

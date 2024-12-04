@@ -1,20 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/Test.sol";
-import "../src/project/ProjectRegister.sol";
+import "../src/extensions/IAllocationPool.sol";
+import "../src/extensions/AllocationPool.sol";
 import "../src/project/Project.sol";
-import {ContributionResolver} from "../src/resolver/ContributionResolver.sol";
-import {VoteResolver} from "../src/resolver/VoteResolver.sol";
-import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
-import {AllocateResolver} from "../src/resolver/AllocateResolver.sol";
-
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
-import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
+import "../src/project/ProjectRegister.sol";
+import "../src/upgrade/ProjectRegisterUpgradeableProxy.sol";
 import "../src/votingStrategy/DefaultRelativeVotingStrategy.sol";
 import "../src/votingStrategy/IVotingStrategy.sol";
-import "../src/upgrade/ProjectRegisterUpgradeableProxy.sol";
+import "@ethereum-attestation-service/eas-contracts/contracts/EAS.sol";
+
+import "@ethereum-attestation-service/eas-contracts/contracts/SchemaRegistry.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "forge-std/Test.sol";
+import {AllocationResolver} from "../src/resolver/AllocationResolver.sol";
+import {ClaimResolver} from "../src/resolver/ClaimResolver.sol";
+import {ContributionResolver} from "../src/resolver/ContributionResolver.sol";
+import {VoteResolver} from "../src/resolver/VoteResolver.sol";
+
+import "./TestToken.sol";
 
 contract ProjectTest is Test {
     address[] private _attesters;
@@ -45,11 +49,16 @@ contract ProjectTest is Test {
 
     address tokenTemplate;
 
+    IAllocationPoolFactory poolFactory;
+    IAllocationPoolTemplate poolTemplate;
+
     function setUp() public {
         for (uint256 i = 0; i < 10; i++) {
             (address _addr, uint256 privateKey) = makeAddrAndKey(Strings.toString(i));
             _attesters.push(_addr);
             _attesterPrivateKeys.push(privateKey);
+
+            vm.deal(address(_addr), 1 ether);
         }
 
         _schemaRegistry = new SchemaRegistry();
@@ -66,6 +75,9 @@ contract ProjectTest is Test {
 
         ProjectToken _token = new ProjectToken();
         tokenTemplate = address(_token);
+
+        poolTemplate = new AllocationPoolTemplate();
+        poolFactory = new AllocationPoolFactory(address(poolTemplate));
 
         address _owner = makeAddr("registryOwner");
         (_signer, _signerPrivateKey) = makeAddrAndKey("registry");
@@ -123,7 +135,7 @@ contract ProjectTest is Test {
         _contributionResolver = new ContributionResolver(_eas);
         _voteResolver = new VoteResolver(_eas);
         _claimResolver = new ClaimResolver(_eas);
-        _allocationResolver = new AllocateResolver(_eas);
+        _allocationResolver = new AllocationResolver(_eas);
 
         _contributionSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, string Details, string Type, string Proof, uint256 StartDate, uint256 EndDate, uint256 TokenAmount, string Extended";
         _schemaRegistry.register(_contributionSchemaTemplate, _contributionResolver, true);
@@ -134,7 +146,7 @@ contract ProjectTest is Test {
         _claimSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 TokenAmount, bytes Signatures";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
 
-        _allocationSchemaTemplate = "address ProjectAddress, string title, address[] walletAddresses, uint16[] allocationRatios, uint256[] tokenAmounts";
+        _allocationSchemaTemplate = "address ProjectAddress, string Title, address[] WalletAddresses, uint16[] AllocationRatios, uint256[] TokenAmounts";
         _schemaRegistry.register(_allocationSchemaTemplate, _allocationResolver, true);
     }
 
@@ -468,5 +480,70 @@ contract ProjectTest is Test {
 
         console2.log("allocate uid:");
         console2.logBytes32(uid);
+    }
+
+    function testAllocationPool() public {
+        address projectAddress = projectAddresses[0];
+        address attester = _attesters[0];
+        address depositor = _attesters[1];
+
+        // token
+        uint256 token0Amount = 1 ether;
+        TestToken token = new TestToken("token1", "symbol1");
+
+        uint256 token1Amount = 15 ether;
+        token.mint(depositor, token1Amount);
+        assert(token.balanceOf(depositor) == token1Amount);
+
+        // allocation
+        Allocation[] memory allocations = new Allocation[](2);
+
+        address[] memory tokenAddresses = new address[](2);
+        tokenAddresses[0] = address(0);
+        tokenAddresses[1] = address(token);
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = token0Amount;
+        amounts[1] = token1Amount;
+
+        allocations[0].token = tokenAddresses[0];
+        allocations[1].token = tokenAddresses[1];
+        allocations[0].unClaimedAmount = amounts[0];
+        allocations[1].unClaimedAmount = amounts[1];
+
+        for (uint256 i = 0; i < allocations.length; i++) {
+            allocations[i].addresses = _attesters;
+
+            uint256[] memory tokenAmounts = new uint256[](_attesters.length);
+            uint16[] memory ratios = new uint16[](_attesters.length);
+            for (uint256 j = 0; j < _attesters.length; j++) {
+                tokenAmounts[j] = token1Amount / _attesters.length;
+                ratios[j] = 1000;
+            }
+            allocations[i].tokenAmounts = tokenAmounts;
+            allocations[i].ratios = ratios;
+        }
+
+        ExtraParams memory params = ExtraParams({
+            projectAddress: projectAddress,
+            creator: attester,
+            depositor: depositor,
+            timeToClaim: block.timestamp + 30
+        });
+
+        address result = poolFactory.create(allocations, params);
+        IAllocationPoolTemplate pool = IAllocationPoolTemplate(result);
+
+        // deposit
+        vm.startPrank(depositor);
+        token.approve(address(pool), amounts[1]);
+        pool.deposit{value: amounts[0]}(tokenAddresses, amounts);
+        vm.stopPrank();
+
+        // refund
+        vm.startPrank(depositor);
+        pool.refund();
+        assert(depositor.balance == token0Amount);
+        assert(token.balanceOf(depositor) == token1Amount);
+        vm.stopPrank();
     }
 }
