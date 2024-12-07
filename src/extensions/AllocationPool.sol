@@ -181,11 +181,11 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                 totalAmount += allocation.tokenAmounts[j];
             }
             if (token == address(0)) {
-                if (totalAmount == address(this).balance) {
+                if (totalAmount != address(this).balance) {
                     return false;
                 }
             } else {
-                if (totalAmount == IERC20(token).balanceOf(address(this))) {
+                if (totalAmount != IERC20(token).balanceOf(address(this))) {
                     return false;
                 }
             }
@@ -227,7 +227,7 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
         require(block.timestamp >= timeToClaim, "the claim time has not arrived yet.");
 
         address from = _msgSender();
-        require(claimStatus[from], "you are already claimed.");
+        require(claimStatus[from] == false, "you are already claimed.");
         // check
         if (!isClaimed) {
             require(_assetsAreRight(), "the contract's tokens balance don't match allocations");
@@ -251,7 +251,7 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
 
                     emit Claimed(to, token, amount);
                 } else {
-                    IERC20(token).safeTransferFrom(address(this), to, amount);
+                    IERC20(token).safeTransfer(to, amount);
                     // record unclaimed token amount
                     allocation.unClaimedAmount -= amount;
 

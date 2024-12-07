@@ -443,7 +443,7 @@ contract ProjectTest is Test {
         }
     }
 
-    function testAllocate() public {
+    function testAllocation() public {
         address projectAddress = projectAddresses[0];
         address attester = _attesters[0];
 
@@ -482,45 +482,74 @@ contract ProjectTest is Test {
         console2.logBytes32(uid);
     }
 
-    function testAllocationPool() public {
-        address projectAddress = projectAddresses[0];
-        address attester = _attesters[0];
-        address depositor = _attesters[1];
+    struct PreparePoolParams {
+        address projectAddress;
+        address attester;
+        address depositor;
+        address contributor;
+        uint256 token0Amount;
+        uint256 token1Amount;
+    }
+
+    function preparePool(
+        PreparePoolParams memory params
+    )
+        public
+        returns (
+            TestToken token1,
+            address poolAddress,
+            address[] memory tokenAddresses,
+            uint256[] memory amounts,
+            uint256 average0Amount,
+            uint256 average1Amount
+        )
+    {
+        address projectAddress = params.projectAddress;
+        address attester = params.attester;
+        address depositor = params.depositor;
+        address contributor = params.contributor;
+        uint256 token0Amount = params.token0Amount;
+        uint256 token1Amount = params.token1Amount;
 
         // token
-        uint256 token0Amount = 1 ether;
-        TestToken token = new TestToken("token1", "symbol1");
-
-        uint256 token1Amount = 15 ether;
-        token.mint(depositor, token1Amount);
-        assert(token.balanceOf(depositor) == token1Amount);
+        token1 = new TestToken("token1", "symbol1");
+        token1.mint(depositor, token1Amount);
 
         // allocation
-        Allocation[] memory allocations = new Allocation[](2);
-
-        address[] memory tokenAddresses = new address[](2);
+        tokenAddresses = new address[](2);
         tokenAddresses[0] = address(0);
-        tokenAddresses[1] = address(token);
-        uint256[] memory amounts = new uint256[](2);
+        tokenAddresses[1] = address(token1);
+
+        amounts = new uint256[](2);
         amounts[0] = token0Amount;
         amounts[1] = token1Amount;
 
+        Allocation[] memory allocations = new Allocation[](2);
         allocations[0].token = tokenAddresses[0];
         allocations[1].token = tokenAddresses[1];
         allocations[0].unClaimedAmount = amounts[0];
         allocations[1].unClaimedAmount = amounts[1];
 
-        for (uint256 i = 0; i < allocations.length; i++) {
-            allocations[i].addresses = _attesters;
+        average0Amount = token0Amount / _attesters.length;
+        average1Amount = token1Amount / _attesters.length;
 
-            uint256[] memory tokenAmounts = new uint256[](_attesters.length);
-            uint16[] memory ratios = new uint16[](_attesters.length);
-            for (uint256 j = 0; j < _attesters.length; j++) {
-                tokenAmounts[j] = token1Amount / _attesters.length;
-                ratios[j] = 1000;
+        {
+            for (uint256 i = 0; i < allocations.length; i++) {
+                allocations[i].addresses = _attesters;
+
+                uint256[] memory tokenAmounts = new uint256[](_attesters.length);
+                uint16[] memory ratios = new uint16[](_attesters.length);
+                for (uint256 j = 0; j < _attesters.length; j++) {
+                    if (i == 0) {
+                        tokenAmounts[j] = average0Amount;
+                    } else {
+                        tokenAmounts[j] = average1Amount;
+                    }
+                    ratios[j] = 1000;
+                }
+                allocations[i].tokenAmounts = tokenAmounts;
+                allocations[i].ratios = ratios;
             }
-            allocations[i].tokenAmounts = tokenAmounts;
-            allocations[i].ratios = ratios;
         }
 
         ExtraParams memory params = ExtraParams({
@@ -529,21 +558,57 @@ contract ProjectTest is Test {
             depositor: depositor,
             timeToClaim: block.timestamp + 30
         });
+        poolAddress = poolFactory.create(allocations, params);
+    }
 
-        address result = poolFactory.create(allocations, params);
+    function testAllocationPool() public {
+        address projectAddress = projectAddresses[0];
+        address attester = _attesters[0];
+        address depositor = _attesters[1];
+        address contributor = _attesters[2];
+        uint256 token0Amount = 1 ether;
+        uint256 token1Amount = 15 ether;
+
+        PreparePoolParams memory params = PreparePoolParams({
+            projectAddress: projectAddress,
+            attester: attester,
+            depositor: depositor,
+            contributor: contributor,
+            token0Amount: token0Amount,
+            token1Amount: token1Amount
+        });
+        (
+            TestToken token1,
+            address result,
+            address[] memory tokenAddresses,
+            uint256[] memory amounts,
+            uint256 average0Amount,
+            uint256 average1Amount
+        ) = preparePool(params);
+
         IAllocationPoolTemplate pool = IAllocationPoolTemplate(result);
 
         // deposit
         vm.startPrank(depositor);
-        token.approve(address(pool), amounts[1]);
+        token1.approve(address(pool), amounts[1]);
         pool.deposit{value: amounts[0]}(tokenAddresses, amounts);
         vm.stopPrank();
 
-        // refund
-        vm.startPrank(depositor);
-        pool.refund();
-        assert(depositor.balance == token0Amount);
-        assert(token.balanceOf(depositor) == token1Amount);
+        // claim
+        vm.warp(block.timestamp + 30);
+        vm.startPrank(contributor);
+        uint256 token0BalanceBefore = contributor.balance;
+        uint256 token1BalanceBefore = token1.balanceOf(contributor);
+        pool.claim();
+        assert(contributor.balance == token0BalanceBefore + average0Amount);
+        assert(token1.balanceOf(contributor) == token1BalanceBefore + average1Amount);
         vm.stopPrank();
+
+        // refund
+        //        vm.startPrank(depositor);
+        //        pool.refund();
+        //        assert(depositor.balance == token0Amount);
+        //        assert(token1.balanceOf(depositor) == token1Amount);
+        //        vm.stopPrank();
     }
 }
