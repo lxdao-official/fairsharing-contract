@@ -146,7 +146,7 @@ contract ProjectTest is Test {
         _claimSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 TokenAmount, bytes Signatures";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
 
-        _allocationSchemaTemplate = "address ProjectAddress, string Title, address[] WalletAddresses, uint16[] AllocationRatios, uint256[] TokenAmounts";
+        _allocationSchemaTemplate = "address ProjectAddress, string Title, address[] WalletAddresses, uint32[] AllocationRatios, uint256[] TokenAmounts";
         _schemaRegistry.register(_allocationSchemaTemplate, _allocationResolver, true);
     }
 
@@ -447,10 +447,10 @@ contract ProjectTest is Test {
         address projectAddress = projectAddresses[0];
         address attester = _attesters[0];
 
-        uint16[] memory allocationRatios = new uint16[](_attesters.length);
+        uint32[] memory allocationRatios = new uint32[](_attesters.length);
         uint256[] memory tokenAmounts = new uint256[](_attesters.length);
         for (uint256 i = 0; i < _attesters.length; i++) {
-            allocationRatios[i] = 1000;
+            allocationRatios[i] = 10_000_000;
             tokenAmounts[i] = 1500 gwei;
         }
 
@@ -507,7 +507,7 @@ contract ProjectTest is Test {
         address projectAddress = params.projectAddress;
         address attester = params.attester;
         address depositor = params.depositor;
-        address contributor = params.contributor;
+        //        address contributor = params.contributor;
         uint256 token0Amount = params.token0Amount;
         uint256 token1Amount = params.token1Amount;
 
@@ -538,14 +538,14 @@ contract ProjectTest is Test {
                 allocations[i].addresses = _attesters;
 
                 uint256[] memory tokenAmounts = new uint256[](_attesters.length);
-                uint16[] memory ratios = new uint16[](_attesters.length);
+                uint32[] memory ratios = new uint32[](_attesters.length);
                 for (uint256 j = 0; j < _attesters.length; j++) {
                     if (i == 0) {
                         tokenAmounts[j] = average0Amount;
                     } else {
                         tokenAmounts[j] = average1Amount;
                     }
-                    ratios[j] = 1000;
+                    ratios[j] = 10_000_000;
                 }
                 allocations[i].tokenAmounts = tokenAmounts;
                 allocations[i].ratios = ratios;

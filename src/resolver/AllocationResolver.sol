@@ -18,7 +18,7 @@ contract AllocationResolver is Ownable, SchemaResolver {
     ) internal view override returns (bool) {
         (address projectAddress, , , , ) = abi.decode(
             attestation.data,
-            (address, string, address[], uint16[], uint256[])
+            (address, string, address[], uint32[], uint256[])
         );
         require(projectAddress != address(0), "Project not found.");
         return IAccessControl(projectAddress).hasRole(0x00, attestation.attester);
