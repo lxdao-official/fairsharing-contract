@@ -12,9 +12,6 @@ import "./IAllocationPool.sol";
 import "forge-std/console2.sol";
 
 contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
-    // Created pool index, default is 0.
-    uint256 private index;
-
     // the template used to create allocation pool, low gas cost.
     address public allocationPoolTemplate;
 
@@ -26,7 +23,7 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
     event PoolCreated(
         address indexed projectAddress,
         address indexed implementation,
-        uint256 index,
+        uint256 salt,
         address indexed creator
     );
 
@@ -47,20 +44,31 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
         Allocation[] calldata allocations,
         ExtraParams calldata params
     ) external returns (address poolAddress) {
+        address creator = _msgSender();
+
         poolAddress = Clones.cloneDeterministic(
             allocationPoolTemplate,
-            keccak256(abi.encodePacked(index))
-        );
-        IAllocationPoolTemplate(poolAddress).initialize(
-            params.projectAddress,
-            params.creator,
-            params.depositor,
-            params.timeToClaim,
-            allocations
+            keccak256(abi.encodePacked(creator, params.salt))
         );
 
-        emit PoolCreated(poolAddress, allocationPoolTemplate, index, _msgSender());
-        index++;
+        CreatPoolExtraParams memory initParams = CreatPoolExtraParams({
+            owner: _msgSender(),
+            projectAddress: params.projectAddress,
+            creator: creator,
+            depositor: params.depositor,
+            timeToClaim: params.timeToClaim
+        });
+        IAllocationPoolTemplate(poolAddress).initialize(allocations, initParams);
+
+        emit PoolCreated(poolAddress, allocationPoolTemplate, params.salt, creator);
+    }
+
+    function predictPoolAddress(address creator, uint256 salt) external view returns (address) {
+        return
+            Clones.predictDeterministicAddress(
+                allocationPoolTemplate,
+                keccak256(abi.encodePacked(creator, salt))
+            );
     }
 }
 
@@ -83,16 +91,13 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
     error ClaimFailed();
 
     function initialize(
-        address _projectAddress,
-        address _creator,
-        address _depositor,
-        uint256 _timeToClaim,
-        Allocation[] calldata _allocations
+        Allocation[] calldata _allocations,
+        CreatPoolExtraParams calldata params
     ) external {
-        projectAddress = _projectAddress;
-        creator = _creator;
-        depositor = _depositor;
-        timeToClaim = _timeToClaim;
+        projectAddress = params.projectAddress;
+        creator = params.creator;
+        depositor = params.depositor;
+        timeToClaim = params.timeToClaim;
         for (uint32 i = 0; i < _allocations.length; i++) {
             allocations.push(_allocations[i]);
         }

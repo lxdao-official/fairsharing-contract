@@ -33,6 +33,8 @@ contract Project is AccessControl, IProject {
 
     address public creator;
 
+    address public owner;
+
     bytes32 public constant MEMBER_ROLE = keccak256("MEMBER");
 
     /**
