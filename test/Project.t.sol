@@ -146,7 +146,7 @@ contract ProjectTest is Test {
         _claimSchemaTemplate = "address ProjectAddress, bytes32 ContributionID, address[] Voters, uint8[] VoteChoices, address Recipient, uint256 TokenAmount, bytes Signatures";
         _schemaRegistry.register(_claimSchemaTemplate, _claimResolver, false);
 
-        _allocationSchemaTemplate = "address ProjectAddress, string Title, address[] WalletAddresses, uint32[] AllocationRatios, uint256[] TokenAmounts";
+        _allocationSchemaTemplate = "address ProjectAddress, string Title, address[] WalletAddresses, uint32[] AllocationRatios, uint256[] TokenAmounts, string Extended";
         _schemaRegistry.register(_allocationSchemaTemplate, _allocationResolver, true);
     }
 
@@ -470,7 +470,8 @@ contract ProjectTest is Test {
                         "title",
                         _attesters,
                         allocationRatios,
-                        tokenAmounts
+                        tokenAmounts,
+                        "Extended"
                     ),
                     value: 0
                 })
@@ -536,7 +537,7 @@ contract ProjectTest is Test {
         uint256 salt = _params.salt;
 
         // token
-        token1 = new TestToken("token1", "symbol1");
+        token1 = new TestToken();
         token1.mint(depositor, token1Amount);
 
         // allocation
@@ -632,7 +633,7 @@ contract ProjectTest is Test {
         //        vm.stopPrank();
 
         // refundUnspecifiedToken
-        //        TestToken2 token2 = new TestToken2("token2", "symbol2");
+        //        TestToken2 token2 = new TestToken2();
         //        uint256 token2Amount = 3 ether;
         //        token2.mint(depositor2, token2Amount);
         //        vm.startPrank(depositor2);

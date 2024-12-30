@@ -22,11 +22,13 @@
 * **Contribution Schema**: [0xa429ad803ae12a0fcb9c0c130673a4c7357da08e1407b62bce5cfe358d673526](https://optimism-sepolia.easscan.org/schema/view/0xa429ad803ae12a0fcb9c0c130673a4c7357da08e1407b62bce5cfe358d673526)
 * **Vote Schema**: [0x6e4068d80a37bc2fb9223e2f07b909b98b370d76b1d94cd83c1a64bb6006a9e5](https://optimism-sepolia.easscan.org/schema/view/0x6e4068d80a37bc2fb9223e2f07b909b98b370d76b1d94cd83c1a64bb6006a9e5)
 * **Claim Schema**: [0x957c1ce9579ea03fcd9e08f0ef9d0ef4ba3ca67f7b459655bcf87a060fd772ca](https://optimism-sepolia.easscan.org/schema/view/0x957c1ce9579ea03fcd9e08f0ef9d0ef4ba3ca67f7b459655bcf87a060fd772ca)
+* **Allocation Schema**:[0xa576d3b11f52a5f093f33bda484903ed0871bd9c629c6e3ed3cbd0242d0ec753](https://optimism-sepolia.easscan.org/schema/view/0xa576d3b11f52a5f093f33bda484903ed0871bd9c629c6e3ed3cbd0242d0ec753)
 
 
 * **ContributionResolver**: [0x18CbB356cd64193b1a0CA49911fc72CB3D02a5E4](https://sepolia-optimism.etherscan.io/address/0x18CbB356cd64193b1a0CA49911fc72CB3D02a5E4)
 * **VoteResolver**: [0x65D17d117C190f7A4cc784b56a17E3f7Edde5762](https://sepolia-optimism.etherscan.io/address/0x65D17d117C190f7A4cc784b56a17E3f7Edde5762)
 * **ClaimResolver**: [0x5C0340AD34f7284f9272E784FF76638E8dDb5dE4](https://sepolia-optimism.etherscan.io/address/0x5C0340AD34f7284f9272E784FF76638E8dDb5dE4)
+* **AllocationResolver**: [0x0e85E456E4a045CB6A18a82fa3c284FA0164eF03](https://sepolia-optimism.etherscan.io/address/0x0e85E456E4a045CB6A18a82fa3c284FA0164eF03)
 
 
 * **Project**: [0xBcd35695ebF929f3242CD9E52953D6Af426999Ca](https://sepolia-optimism.etherscan.io/address/0xBcd35695ebF929f3242CD9E52953D6Af426999Ca)
