@@ -242,25 +242,26 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
             Allocation storage allocation = allocations[i];
             address token = allocation.token;
 
-            // distribute every wallet
             for (uint32 j = 0; j < allocation.addresses.length; j++) {
                 address to = allocation.addresses[j];
-                uint256 amount = allocation.tokenAmounts[j];
-                if (token == address(0)) {
-                    (bool success, ) = to.call{value: amount}("");
-                    if (!success) {
-                        revert ClaimFailed();
+                if (to == from) {
+                    uint256 amount = allocation.tokenAmounts[j];
+                    if (token == address(0)) {
+                        (bool success, ) = to.call{value: amount}("");
+                        if (!success) {
+                            revert ClaimFailed();
+                        }
+                        // record unclaimed token amount
+                        allocation.unClaimedAmount -= amount;
+
+                        emit Claimed(to, token, amount);
+                    } else {
+                        IERC20(token).safeTransfer(to, amount);
+                        // record unclaimed token amount
+                        allocation.unClaimedAmount -= amount;
+
+                        emit Claimed(to, token, amount);
                     }
-                    // record unclaimed token amount
-                    allocation.unClaimedAmount -= amount;
-
-                    emit Claimed(to, token, amount);
-                } else {
-                    IERC20(token).safeTransfer(to, amount);
-                    // record unclaimed token amount
-                    allocation.unClaimedAmount -= amount;
-
-                    emit Claimed(to, token, amount);
                 }
             }
         }
