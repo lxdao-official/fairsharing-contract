@@ -133,19 +133,19 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
 
         // check time
         if (block.timestamp < timeToClaim) {
-            // refund
+            // refund all
             _refund(from, true);
         } else {
             if (isClaimed) {
-                // refund
+                // refund part
                 _refund(from, false);
             } else {
                 // check assets
                 if (_assetsAreRight()) {
                     revert("No refunds are allowed during claim time.");
                 } else {
-                    // refund
-                    _refund(from, false);
+                    // refund all
+                    _refund(from, true);
                 }
             }
         }
@@ -208,11 +208,13 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                         uint256 unClaimedAmount = allocations[i].unClaimedAmount;
                         canRefundAmount -= unClaimedAmount;
                     }
-                    (bool success, ) = to.call{value: canRefundAmount}("");
-                    if (!success) {
-                        revert RefundFailed();
+                    if (canRefundAmount > 0) {
+                        (bool success, ) = to.call{value: canRefundAmount}("");
+                        if (!success) {
+                            revert RefundFailed();
+                        }
+                        emit Refunded(to, token, canRefundAmount);
                     }
-                    emit Refunded(to, token, canRefundAmount);
                 }
             } else {
                 uint256 canRefundAmount = IERC20(token).balanceOf(address(this));
@@ -221,8 +223,10 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                         uint256 unClaimedAmount = allocations[i].unClaimedAmount;
                         canRefundAmount -= unClaimedAmount;
                     }
-                    IERC20(token).safeTransfer(to, canRefundAmount);
-                    emit Refunded(to, token, canRefundAmount);
+                    if (canRefundAmount > 0) {
+                        IERC20(token).safeTransfer(to, canRefundAmount);
+                        emit Refunded(to, token, canRefundAmount);
+                    }
                 }
             }
         }

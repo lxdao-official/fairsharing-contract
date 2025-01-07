@@ -58,7 +58,7 @@ contract ProjectTest is Test {
             _attesters.push(_addr);
             _attesterPrivateKeys.push(privateKey);
 
-            vm.deal(address(_addr), 1 ether);
+            vm.deal(address(_addr), 1.3 ether);
         }
 
         _schemaRegistry = new SchemaRegistry();
@@ -609,38 +609,50 @@ contract ProjectTest is Test {
 
         // deposit
         address depositor2 = depositor;
+        uint256 depositor2Token0Balance = depositor2.balance;
         vm.startPrank(depositor2);
         token1.approve(address(pool), amounts[1]);
         pool.deposit{value: amounts[0]}(tokenAddresses, amounts);
         vm.stopPrank();
 
-        // claim
-        vm.warp(block.timestamp + 30);
-        address claimer = contributor;
-        vm.startPrank(claimer);
-        uint256 token0BalanceBefore = claimer.balance;
-        uint256 token1BalanceBefore = token1.balanceOf(claimer);
-        pool.claim();
-        assert(claimer.balance == token0BalanceBefore + average0Amount);
-        assert(token1.balanceOf(claimer) == token1BalanceBefore + average1Amount);
-        vm.stopPrank();
+        {
+            // refund all
+            //            vm.startPrank(depositor2);
+            //            pool.refund();
+            //            assert(depositor2.balance == depositor2Token0Balance);
+            //            assert(token1.balanceOf(depositor2) == token1Amount);
+            //            vm.stopPrank();
+        }
 
-        // refund
-        //        vm.startPrank(depositor2);
-        //        pool.refund();
-        //        assert(depositor2.balance == token0Amount);
-        //        assert(token1.balanceOf(depositor2) == token1Amount);
-        //        vm.stopPrank();
+        {
+            // claim
+            vm.warp(block.timestamp + 30);
+            address claimer = contributor;
+            vm.startPrank(claimer);
+            uint256 token0BalanceBefore = claimer.balance;
+            uint256 token1BalanceBefore = token1.balanceOf(claimer);
+            pool.claim();
+            assert(claimer.balance == token0BalanceBefore + average0Amount);
+            assert(token1.balanceOf(claimer) == token1BalanceBefore + average1Amount);
+            vm.stopPrank();
+
+            // refund remain
+            vm.startPrank(depositor2);
+            pool.refund();
+            assert(depositor2.balance == depositor2Token0Balance - token0Amount);
+            //            assert(token1.balanceOf(depositor2) == token1Amount);
+            vm.stopPrank();
+        }
 
         // refundUnspecifiedToken
-        //        TestToken2 token2 = new TestToken2();
-        //        uint256 token2Amount = 3 ether;
-        //        token2.mint(depositor2, token2Amount);
-        //        vm.startPrank(depositor2);
-        //        token2.transfer(address(pool), token2Amount);
-        //        assert(token2.balanceOf(depositor2) == 0);
-        //        pool.refundUnspecifiedToken(address(token2));
-        //        assert(token2.balanceOf(depositor2) == token2Amount);
-        //        vm.stopPrank();
+        TestToken2 token2 = new TestToken2();
+        uint256 token2Amount = 3 ether;
+        token2.mint(depositor2, token2Amount);
+        vm.startPrank(depositor2);
+        token2.transfer(address(pool), token2Amount);
+        assert(token2.balanceOf(depositor2) == 0);
+        pool.refundUnspecifiedToken(address(token2));
+        assert(token2.balanceOf(depositor2) == token2Amount);
+        vm.stopPrank();
     }
 }
