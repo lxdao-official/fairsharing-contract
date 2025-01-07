@@ -140,13 +140,8 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                 // refund part
                 _refund(from, false);
             } else {
-                // check assets
-                if (_assetsAreRight()) {
-                    revert("No refunds are allowed during claim time.");
-                } else {
-                    // refund all
-                    _refund(from, true);
-                }
+                // refund all
+                _refund(from, true);
             }
         }
     }
