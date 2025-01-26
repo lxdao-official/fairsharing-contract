@@ -45,7 +45,7 @@ interface IAllocationPoolTemplate {
 
     function refund() external;
 
-    function refundUnspecifiedToken(address token) external;
+    function enforceRefundToken(address token) external;
 
     function claim() external;
 }

@@ -44,6 +44,21 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
         Allocation[] calldata allocations,
         ExtraParams calldata params
     ) external returns (address poolAddress) {
+        // check allocations
+        require(allocations.length > 0, "create arguments error");
+        for (uint256 i = 0; i < allocations.length; i++) {
+            Allocation memory allocation = allocations[i];
+            uint256 amount = 0;
+            require(
+                allocation.addresses.length == allocation.tokenAmounts.length,
+                "create arguments error"
+            );
+            for (uint256 j = 0; j < allocation.tokenAmounts.length; j++) {
+                amount += allocation.tokenAmounts[j];
+            }
+            require(allocation.unClaimedAmount == amount, "create arguments error");
+        }
+
         address creator = _msgSender();
 
         poolAddress = Clones.cloneDeterministic(
@@ -146,13 +161,13 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
         }
     }
 
-    function refundUnspecifiedToken(address token) external nonReentrant {
+    function enforceRefundToken(address token) external nonReentrant {
         address to = _msgSender();
         require(to == depositor, "caller is not depositor");
-        for (uint32 i = 0; i < allocations.length; i++) {
-            Allocation memory allocation = allocations[i];
-            require(token != allocation.token, "just can refund unspecified token.");
-        }
+        //        for (uint32 i = 0; i < allocations.length; i++) {
+        //            Allocation memory allocation = allocations[i];
+        //            require(token != allocation.token, "just can refund unspecified token.");
+        //        }
         if (token == address(0)) {
             uint256 balance = address(this).balance;
             if (balance > 0) {

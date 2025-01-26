@@ -644,14 +644,14 @@ contract ProjectTest is Test {
             vm.stopPrank();
         }
 
-        // refundUnspecifiedToken
+        // enforceRefundToken
         TestToken2 token2 = new TestToken2();
         uint256 token2Amount = 3 ether;
         token2.mint(depositor2, token2Amount);
         vm.startPrank(depositor2);
         token2.transfer(address(pool), token2Amount);
         assert(token2.balanceOf(depositor2) == 0);
-        pool.refundUnspecifiedToken(address(token2));
+        pool.enforceRefundToken(address(token2));
         assert(token2.balanceOf(depositor2) == token2Amount);
         vm.stopPrank();
     }
