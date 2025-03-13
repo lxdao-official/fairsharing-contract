@@ -28,15 +28,23 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
     );
 
     constructor(address _allocationTemplate) {
+        require(_allocationTemplate != address(0), "Template cannot be zero address");
         allocationPoolTemplate = _allocationTemplate;
     }
 
     function updateTemplate(address _allocationPoolTemplate) external onlyOwner {
+        // Fix: Store old value first for event emission
+        address oldTemplate = allocationPoolTemplate;
+        
+        // Validate new template
+        require(_allocationPoolTemplate != address(0), "Template cannot be zero address");
+        
+        // Update state only once
         allocationPoolTemplate = _allocationPoolTemplate;
-
-        if (_allocationPoolTemplate != allocationPoolTemplate) {
-            emit PoolTemplateChanged(_msgSender(), allocationPoolTemplate, _allocationPoolTemplate);
-            allocationPoolTemplate = _allocationPoolTemplate;
+        
+        // Emit event if there was a change
+        if (oldTemplate != _allocationPoolTemplate) {
+            emit PoolTemplateChanged(_msgSender(), oldTemplate, _allocationPoolTemplate);
         }
     }
 
@@ -58,6 +66,10 @@ contract AllocationPoolFactory is Ownable, IAllocationPoolFactory {
             }
             require(allocation.unClaimedAmount == amount, "create arguments error");
         }
+        
+        // Fix: Add validation for parameters
+        require(params.timeToClaim > block.timestamp, "Claim time must be in the future");
+        require(params.projectAddress != address(0), "Project address cannot be zero");
 
         address creator = _msgSender();
 
@@ -98,17 +110,33 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
     mapping(address => bool) public claimStatus;
     Allocation[] public allocations;
     bool public isClaimed;
+    
+    // Fix: Add initialization guard
+    bool private _initialized;
 
+    event Initialized(address indexed creator, address indexed projectAddress, uint256 timeToClaim);
     event Deposited(address indexed from, address indexed token, uint256 amount);
     event Refunded(address indexed from, address indexed token, uint256 amount);
     event Claimed(address indexed from, address indexed token, uint256 amount);
     error RefundFailed();
     error ClaimFailed();
+    error AlreadyInitialized();
 
     function initialize(
         Allocation[] calldata _allocations,
         CreatPoolExtraParams calldata params
     ) external {
+        // Fix: Add initialization guard
+        if (_initialized) {
+            revert AlreadyInitialized();
+        }
+        
+        // Fix: Add parameter validation
+        require(params.projectAddress != address(0), "Project address cannot be zero");
+        require(params.creator != address(0), "Creator cannot be zero address");
+        require(params.timeToClaim > block.timestamp, "Claim time must be in the future");
+        require(_allocations.length > 0, "Allocations cannot be empty");
+        
         projectAddress = params.projectAddress;
         creator = params.creator;
         depositor = params.depositor;
@@ -117,6 +145,12 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
             allocations.push(_allocations[i]);
         }
         isClaimed = false;
+        
+        // Mark as initialized
+        _initialized = true;
+        
+        // Emit initialization event
+        emit Initialized(params.creator, params.projectAddress, params.timeToClaim);
     }
 
     receive() external payable {}
@@ -127,13 +161,20 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
     ) external payable nonReentrant {
         require(tokens.length == amounts.length, "deposit arguments error.");
         address from = _msgSender();
+        
+        // Fix: Validate total ETH amount
+        uint256 totalETHRequired = 0;
+        for (uint32 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == address(0)) {
+                totalETHRequired += amounts[i];
+            }
+        }
+        require(msg.value >= totalETHRequired, "Insufficient ETH sent");
 
         for (uint32 i = 0; i < tokens.length; i++) {
             if (tokens[i] == address(0)) {
-                uint256 amountReceived = msg.value;
-                if (amountReceived > 0) {
-                    emit Deposited(from, address(0), amountReceived);
-                }
+                // ETH handling
+                emit Deposited(from, address(0), amounts[i]);
             } else {
                 // need approve first
                 IERC20(tokens[i]).safeTransferFrom(from, address(this), amounts[i]);
@@ -171,17 +212,23 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
         if (token == address(0)) {
             uint256 balance = address(this).balance;
             if (balance > 0) {
-                (bool success, ) = to.call{value: balance}("");
+                // Fix: Store the amount to refund before making the external call
+                uint256 amountToRefund = balance;
+                
+                (bool success, ) = to.call{value: amountToRefund}("");
                 if (!success) {
                     revert RefundFailed();
                 }
-                emit Refunded(to, token, balance);
+                emit Refunded(to, token, amountToRefund);
             }
         } else {
             uint256 balance = IERC20(token).balanceOf(address(this));
             if (balance > 0) {
-                IERC20(token).safeTransfer(to, balance);
-                emit Refunded(to, token, balance);
+                // Fix: Store the amount to refund before making the external call
+                uint256 amountToRefund = balance;
+                
+                IERC20(token).safeTransfer(to, amountToRefund);
+                emit Refunded(to, token, amountToRefund);
             }
         }
     }
@@ -219,11 +266,14 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                         canRefundAmount -= unClaimedAmount;
                     }
                     if (canRefundAmount > 0) {
-                        (bool success, ) = to.call{value: canRefundAmount}("");
+                        // Fix: Store the amount to refund before making the external call
+                        uint256 amountToRefund = canRefundAmount;
+                        
+                        (bool success, ) = to.call{value: amountToRefund}("");
                         if (!success) {
                             revert RefundFailed();
                         }
-                        emit Refunded(to, token, canRefundAmount);
+                        emit Refunded(to, token, amountToRefund);
                     }
                 }
             } else {
@@ -234,8 +284,11 @@ contract AllocationPoolTemplate is Context, ReentrancyGuard, IAllocationPoolTemp
                         canRefundAmount -= unClaimedAmount;
                     }
                     if (canRefundAmount > 0) {
-                        IERC20(token).safeTransfer(to, canRefundAmount);
-                        emit Refunded(to, token, canRefundAmount);
+                        // Fix: Store the amount to refund before making the external call
+                        uint256 amountToRefund = canRefundAmount;
+                        
+                        IERC20(token).safeTransfer(to, amountToRefund);
+                        emit Refunded(to, token, amountToRefund);
                     }
                 }
             }
